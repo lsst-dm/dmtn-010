@@ -56,3 +56,35 @@ What would it take to re-implement in C++ per Section 6.1? Would it be worth it 
 All coordinates are double-precision: do we need long doubles for anything?
 
 Angles in radians: is there a way to handle that smoothly if we use astropy Units?
+
+### Working with AST
+
+ * Documentation of pyast is not helpful. At all.
+ * Returns RA/Dec in radians, not normalized to RA>0.
+  * frameset.norm() can normalize the above, but won't work on the output of frameset.tran()!
+
+## GWCS (working paper for ASP presentation)
+
+Developed for JWST requirements, but for general use.
+
+Persists via ASDF.
+
+Transformation combinations are built using astropy.modeling. Can chain (sequential: | operator), join (independent inputs: & operator), added/multiplied/devided/etc. (standard python operators).
+
+Transforms can be manipulated after WCS initialization.
+
+coordinate frames via astropy.coordinates/units.
+
+Can access intermediate frames.
+
+non-pixel coordinates (time/spectral order/temperature) are allowed
+
+WCS object persisted as FITS extension encoded as ASDF (YAML/JSON plus binary blobs).
+
+### Working with GWCS
+
+ * It's a bit cumbersome to open a FITS file with a simple WCS and produce a gwcs object with that as part of the mapping.
+ * The way to create a model consisting of a chain of things (2d polynomials in x and Y) is nice (astropy.modeling using &|+ etc).
+ * Returns RA/Dec in degrees, normalized to RA>0.
+
+ * Some interesting questions about how stable/convergent/optimized astropy.modeling really is during the workshop. If we were to use it for fitting, this is a critical point.
