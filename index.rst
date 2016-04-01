@@ -9,10 +9,6 @@
 
 :tocdepth: 1
 
-====================================================================
-WCS/Distortion model requirements, options, and recommendations
-====================================================================
-
 LSST-DM currently uses WCSlib_ to persist/un-persist and manipulate
 World Coordinate System (WCS) transformations. WCS-lib is based on the work by
 Greisen & Calabretta, which is specifically focused on the FITS WCS standard.
