@@ -13,7 +13,7 @@ serial_number: '010'
 doc_id: 'DMTN-010'
 
 # Title of the document, without the series/serial designation
-doc_title: 'WCS/Distortion Requirements and Existing Options'
+doc_title: 'WCS and Distortion Requirements and Existing Options'
 
 # Author names, ordered as a list. Each author name should be formatted as 'First Last'
 authors:

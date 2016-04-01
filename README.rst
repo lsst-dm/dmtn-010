@@ -1,6 +1,6 @@
-#########################################################
-DMTN-010 WCS/Distortion Requirements and Existing Options
-#########################################################
+#############################################################
+DMTN-010 WCS and Distortion Requirements and Existing Options
+#############################################################
 
 The future World Coordinate System and distortion model requirements of the LSST software stack, and a summary of currently available options from the community.
 
