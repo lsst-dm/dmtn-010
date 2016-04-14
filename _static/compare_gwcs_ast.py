@@ -1,6 +1,8 @@
 """Comparison between GWCS and AST.
 
-You must run this with ipython: ipython compare_gwcs_ast.py
+You must run this with ipython and you must create simple.fits first. Thus:
+$ python makeExposure.py
+$ ipython compare_gwcs_ast.py
 """
 import os.path
 
