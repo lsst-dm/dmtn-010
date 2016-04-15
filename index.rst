@@ -9,16 +9,20 @@
 
 :tocdepth: 1
 
-LSST-DM currently uses WCSlib_ to persist/un-persist and manipulate
-World Coordinate System (WCS) transformations. WCS-lib is based on the work by
+LSST-DM currently uses WCSLIB_ to persist/un-persist and manipulate
+World Coordinate System (WCS) transformations. WCSLIB is based on the work by
 Greisen & Calabretta, which is specifically focused on the FITS WCS standard.
 This standard only supports distortion models involving 7th order polynomials, which severly limits its ability to describe complex focal plane and on-sky distortions. Most previous projects have employed this, or a related FITS WCS-based library, usually with some home-built custom functionality, to manage their astrometric results.
 
-.. _WCSlib: http://www.atnf.csiro.au/people/mcalabre/WCS/
+.. _WCSLIB: http://www.atnf.csiro.au/people/mcalabre/WCS/
 
 There is no standardized method in the astronomical community to improve upon or extend the FITS WCS standard. The `Simple Imaging Polynomial convention <http://fits.gsfc.nasa.gov/registry/sip.html>`_ allows a distortion model represented by a polynomial of up to 9th order. The DECam community pipeline uses the `TPV convention <http://fits.gsfc.nasa.gov/registry/tpvwcs.html>`_ which allows a 7th-order polynomial distortion correction. SDSS produced their own `asTran model <https://data.sdss.org/datamodel/files/PHOTO_REDUX/RERUN/RUN/astrom/asTrans.html>`_ to map the (row,column) coordinates from each field into `(mu,nu) <https://www.sdss3.org/dr8/algorithms/surveycoords.php>`_ great circle spherical coordinates via a 3rd order polynomial.
 
-Two much more flexible, powerful, and extensible systems are Starlink AST and STScI's GWCS. The `Starlink AST package <http://starlink.eao.hawaii.edu/starlink/AST>`_, written in C, provides much more complicated models that can be combined in a variety of ways, but it is not widely used. STScI is developing a python-based Generalized World Coordinate System package (`GWCS <https://github.com/spacetelescope/gwcs>`_), building top of astropy.modeling for JWST.
+Two much more flexible, powerful, and extensible systems are Starlink AST and STScI's GWCS. The Starlink AST_ package , written in C, provides much more complicated models that can be combined in a variety of ways, but it is not widely used. STScI is developing a python-based Generalized World Coordinate System package (GWCS_), building top of astropy.modeling for JWST.
+
+.. _AST: http://starlink.eao.hawaii.edu/starlink/AST
+
+.. _GWCS: https://github.com/spacetelescope/gwcs
 
 This document discusses the expected requirements for the LSST distortion model and coordinate transform system, the options we have to select from, and provides a recommendation for how we should achieve our requirements.
 
@@ -73,11 +77,11 @@ Disadvantages
 
 .. wcslib:
 
-2. Build on top of WCS-lib
+2. Build on top of WCSLIB
 --------------------------
 
 Instead of starting entirely from scratch, we could continue to build on top of
-WCS-lib. This has the advantage that of not having to re-implement the FITS-WCS
+WCSLIB_. This has the advantage that of not having to re-implement the FITS-WCS
 standard, but may be limiting in what we would be able to build on top of it,
 in addition to requiring nearly as much effort as option 1, above.
 
@@ -106,7 +110,7 @@ Disadvantages
 3. Adopt Starlink AST as-is
 ---------------------------
 
-The `Starlink AST package <http://starlink.eao.hawaii.edu/starlink/AST>`_,
+The Starlink AST_ package,
 written in "Object Oriented C", provides a large suite of composeable
 transformation classes, including mapping simplification to reduce the number of
 steps required to e.g. go from one focal plane to another, possibly avoiding
@@ -145,7 +149,7 @@ Disadvantages
 4. Adopt Starlink AST with LSST C++ abstraction layer
 -----------------------------------------------------
 
-Instead of directly using AST, we could wrap it a C++ abstraction layer, making
+Instead of directly using AST_, we could wrap it a C++ abstraction layer, making
 the interface more similar to the current afw.wcs. This would require more
 initial work than just using AST, and would require additional effort to write
 an interface for any part of AST that we did not wrap that we discovered we
@@ -180,12 +184,12 @@ Disadvantages
  * API could use significant refactoring.
  * David Berry will very likely retire around the time of LSST commissioning: LSST-DM would become the de-facto owners of AST.
 
-.. GWCS:
+.. adoptGWCS:
 
 5. Adopt AstroPy GWCS
 ---------------------
 
-`GWCS <https://github.com/spacetelescope/gwcs>`_ is a Generalized World
+GWCS_ is a Generalized World
 Coordinate System library currently being developed by STScI for use by JWST. It
 is written in pure python, and built on top of the
 `astropy.modeling <http://docs.astropy.org/en/stable/modeling/>`_ framework.
