@@ -9,6 +9,9 @@
 
 :tocdepth: 1
 
+Introduction
+============
+
 LSST-DM currently uses WCSLIB_ to persist/un-persist and manipulate
 World Coordinate System (WCS) transformations. WCSLIB is based on the work by
 Greisen & Calabretta, which is specifically focused on the FITS WCS standard.
@@ -18,10 +21,10 @@ This standard only supports distortion models involving 7th order polynomials, w
 
 There is no standardized method in the astronomical community to improve upon or extend the FITS WCS standard. The `Simple Imaging Polynomial convention <http://fits.gsfc.nasa.gov/registry/sip.html>`_ allows a distortion model represented by a polynomial of up to 9th order. The DECam community pipeline uses the `TPV convention <http://fits.gsfc.nasa.gov/registry/tpvwcs.html>`_ which allows a 7th-order polynomial distortion correction. SDSS produced their own `asTran model <https://data.sdss.org/datamodel/files/PHOTO_REDUX/RERUN/RUN/astrom/asTrans.html>`_ to map the (row,column) coordinates from each field into `(mu,nu) <https://www.sdss3.org/dr8/algorithms/surveycoords.php>`_ great circle spherical coordinates via a 3rd order polynomial.
 
-Two much more flexible, powerful, and extensible systems are Starlink AST and STScI's GWCS. The Starlink AST_ package , written in C, provides much more complicated models that can be combined in a variety of ways, but it is not widely used. STScI is developing a python-based Generalized World Coordinate System package (GWCS_), building top of astropy.modeling for JWST.
+Two much more flexible, powerful, and extensible systems are Starlink AST and STScI's GWCS. The Starlink AST_ package, developed by David Berry (East Asian Observatory) in C, with a python interface written by Tim Jenness (pyast_), provides complicated models that can be combined in a variety of ways, but it is not widely used. Nadia Dencheva and Perry Greenfield (STScI) are developing a python-based Generalized World Coordinate System package (GWCS_), building top of astropy.modeling for JWST.
 
 .. _AST: http://starlink.eao.hawaii.edu/starlink/AST
-
+.. _pyast: http://timj.github.io/starlink-pyast/pyast.html
 .. _GWCS: https://github.com/spacetelescope/gwcs
 
 This document discusses the expected requirements for the LSST distortion model and coordinate transform system, the options we have to select from, and provides a recommendation for how we should achieve our requirements.
@@ -29,17 +32,52 @@ This document discusses the expected requirements for the LSST distortion model 
 Requirements
 ============
 
-.. warning::
- This section currently under development!
-
 The initial call for discussion of future WCS/distortion model requirements was on this
 `Community posting <https://community.lsst.org/t/future-world-coordinate-system-requirements/521>`_. Independently, Jim Bosch's `post about fitted models <https://community.lsst.org/t/interfaces-for-fitted-models/505>`_ presented some items which may guide our selection of modeling system.
 
- * shared serialization format with GWCS, to allow LSST files to be used in non-LSST code.
- * very complex, composed models.
- * Worst case: ~400 pixels at a time (postage stamps in multifit)
+LSST's most critical requirements are:
 
-More TBD...
+ * Specifying complex parametric and non-parametric models.
+ * Arbitrary combinations/compositions of those models.
+ * Shared serialization format with GWCS_, to allow LSST files to be used in non-LSST code and vice-versa. (see, e.g. STC2_ as a possible route toward this).
+ * Fast pixel-to-pixel performance for warping, and on small (~400px) postage stamps in multifit.
+
+.. _STC2: https://volute.g-vo.org/svn/trunk/projects/dm/vo-dml/models/STC2/2016-02-19/VO-DML-STC2.html
+
+Coordinate and Transformation Requirements
+------------------------------------------
+ 
+ * Pixel distortion effects that are frozen through one exposure (not Brighter-Fatter). These are likely our "exotic" ones, including e.g. tree rings, edge rolloff.
+ * Mappings between camera coordinates must be entirely interoperable with image->sky transformations.
+ * Compositions should only simplify when it can be done exactly, or when explicitly requested with a bound on accuracy.
+ * Transforms should know their endpoints to ensure that composed transforms are valid to get between those endpoints.
+ * Distinguish between spherical and Cartesian, to ensure correct geometry.
+ * Likely do not need color/wavelength in WCS, if we define PSFs with offset centroids.
+ * Method to invert transforms. If not invertible, should allow pre-defined one-way transforms to be identified as each-other's inverses.
+ * Efficiently obtain exact transform at one point for warping. Needs to be fast and parallel.
+ * Efficient parallel local linear approximation around a point.
+ * Method for getting a local TAN WCS approximation.
+ * Persistable as components of arbitrary objects (e.g. Exposure, Psf).
+ * Persist groups of composed transforms efficiently e.g. for all CCDs in a visit. Unclear if this is necessary: the only obvious "heavyweight" transform is pixel distortion (e.g. tree rings), which is per-CCD anyway.
+ * Parameterizable to compute or provide (at least) first derivatives, to simplify connection wtih XYTransform etc.
+ * Polynomial/Chebyshev transforms are not enough. Need ability to add more transforms in the future as we discover a need for them.
+ * Methods for easily creating simple WCS.
+ * Combined post-ISR CCD, including initial guess from pointing, to feed into our astrometric solver.
+
+Models for Consumers vs. Fitters
+--------------------------------
+
+We may want to have separate model representations for astrometric fitting and for using the result of the fit. In the current LSST stack, we have an XYTransform_ as the interface for the consumer (fitted) model, while the Gtransfo_ object introduced in jointcal is a interface for a particular fitter.
+
+.. _XYTransform: https://github.com/lsst/afw/blob/w.2016.15/include/lsst/afw/geom/XYTransform.h
+.. _Gtransfo: https://github.com/lsst/jointcal/blob/master/include/lsst/jointcal/Gtransfo.h
+
+ * It's useful to separate fitter from consumer, as they may have different "best" representations.
+ * It can be conceptually and programmatically helpful to have the same system (or API?) for both, to allow easy transfer between them.
+ * Fitters must be mutable. Consumers need not be and may be better as immutable to allow the complex object to be safely shared.
+ * Consumers must be persistable. Fitters may not need to be.
+
+As a related point, it could be useful to have the same model description system available for other purposes (e.g. representing galaxy shapes, `photometric calibration <http://arxiv.org/abs/1203.6255>`_).
 
 Options
 =======
