@@ -138,7 +138,7 @@ Advantages
 Disadvantages
 ^^^^^^^^^^^^^^
  
- * Existing documetation often opaque.
+ * Existing documentation often opaque.
  * pyast documentation very sparse.
  * Written in "Object Oriented C" - major long-term maintainability question.
  * API could use significant refactoring.
@@ -178,7 +178,7 @@ Disadvantages
  * Moderate time investment.
  * Cannot easily leverage full power of AST machinery.
  * Would have to provide separate documentation of our C++ API.
- * Existing documetation often opaque.
+ * Existing documentation often opaque.
  * pyast documentation very sparse.
  * Written in "Object Oriented C" - major long-term maintainability question.
  * API could use significant refactoring.
@@ -217,7 +217,7 @@ Disadvantages
 
  * Significant time investment: current code manipulates WCS in C++.
  * Not directly callable from C++: calls to python from C++ may incure signifcant overhead.
- * Model description framework is pure python: unclear if performance requirements can be met, particularly for warping small patches.
+ * Model description framework is pure python: unclear if performance requirements can be met, particularly for warping.
  * Ongoing development work: not all features we may need are available.
  * No effort yet on performance optimizations.
 
