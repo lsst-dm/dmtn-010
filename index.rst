@@ -66,11 +66,11 @@ Coordinate and Transformation Requirements
  * A method for obtaining a local TAN WCS approximation.
  * Transforms must be persistable as components of arbitrary objects (e.g. Exposure, Psf).
 
-   * Persist groups of composed transforms efficiently e.g. for all CCDs in a visit, to reduce data size. It is unclear if this is actually necessary: the only obvious "heavyweight" transform is pixel distortion (e.g. tree rings), which is per-CCD anyway.
+   * Groups of composed transforms should be persisted efficiently, e.g. for all CCDs in a visit, to reduce data size. It is unclear if this is actually necessary: the only obvious "heavyweight" transform is pixel distortion (e.g. tree rings), which is per-CCD anyway.
 
  * The ability to compute or provide derivatives with respect to pixel coordinates (to compute local affine transformations).
 
-   * If we use the same system for Fitters as we do for Consumers (see :ref:`_consumers-vs-fitters`), some transforms will need the ability to compute or provide (at least) first derivatives with respect to the parameters.
+   * If we use the same system for Fitters as we do for Consumers (see :ref:`consumers-vs-fitters`), some transforms will need the ability to compute or provide (at least) first derivatives with respect to the parameters.
 
  * The ability to add more transforms in the future as we discover a need for them: polynomial/Chebyshev transforms are not enough.
  * We likely do `not` need to include wavelength-dependent effects (e.g. Differential Chromatic Refraction) in the WCS, if we define our PSFs with offset centroids.
