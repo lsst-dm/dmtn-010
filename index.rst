@@ -21,10 +21,10 @@ This standard only supports distortion models involving 7th order polynomials, w
 
 There is no standardized method in the astronomical community to improve upon or extend the FITS WCS standard. The `Simple Imaging Polynomial convention <http://fits.gsfc.nasa.gov/registry/sip.html>`_ allows a distortion model represented by a polynomial of up to 9th order. The DECam community pipeline uses the `TPV convention <http://fits.gsfc.nasa.gov/registry/tpvwcs.html>`_ which allows a 7th-order polynomial distortion correction. SDSS produced their own `asTran model <https://data.sdss.org/datamodel/files/PHOTO_REDUX/RERUN/RUN/astrom/asTrans.html>`_ to map the (row,column) coordinates from each field into `(mu,nu) <https://www.sdss3.org/dr8/algorithms/surveycoords.php>`_ great circle spherical coordinates via a 3rd order polynomial.
 
-Two much more flexible, powerful, and extensible systems are Starlink AST and STScI's GWCS. The Starlink AST_ package, developed by David Berry (East Asian Observatory) in C, with a python interface written by Tim Jenness (pyast_), provides complicated models that can be combined in a variety of ways, but it is not widely used. Nadia Dencheva and Perry Greenfield (STScI) are developing a python-based Generalized World Coordinate System package (GWCS_), building top of astropy.modeling for JWST.
+Two much more flexible, powerful, and extensible systems are Starlink AST_ and STScI's GWCS_. The Starlink AST_ package, developed by David Berry (East Asian Observatory) in C, with a python interface written by Tim Jenness (PyAST_), provides models that can be combined in a variety of ways, but it is not widely used. Nadia Dencheva and Perry Greenfield (STScI) are developing a python-based Generalized World Coordinate System package (GWCS_), building top of astropy.modeling for JWST.
 
 .. _AST: http://starlink.eao.hawaii.edu/starlink/AST
-.. _pyast: http://timj.github.io/starlink-pyast/pyast.html
+.. _PyAST: http://timj.github.io/starlink-pyast/pyast.html
 .. _GWCS: https://github.com/spacetelescope/gwcs
 
 This document discusses the expected requirements for the LSST distortion model and coordinate transform system, the options we have to select from, and provides a recommendation for how we should achieve our requirements.
@@ -33,59 +33,71 @@ Requirements
 ============
 
 The initial call for discussion of future WCS/distortion model requirements was on this
-`Community posting <https://community.lsst.org/t/future-world-coordinate-system-requirements/521>`_. Independently, Jim Bosch's `post about fitted models <https://community.lsst.org/t/interfaces-for-fitted-models/505>`_ presented some items which may guide our selection of modeling system.
+`Community posting <https://community.lsst.org/t/future-world-coordinate-system-requirements/521>`_. Independently, Jim Bosch's `post about fitted models <https://community.lsst.org/t/interfaces-for-fitted-models/505>`_ presented some items which may guide our selection of transformation modeling systems.
 
 LSST's most critical requirements are:
 
  * Specifying complex parametric and non-parametric models.
  * Arbitrary combinations/compositions of those models.
- * Shared serialization format with GWCS_, to allow LSST files to be used in non-LSST code and vice-versa. (see, e.g. STC2_ as a possible route toward this).
+ * Ability to provide approximate WCSLIB_-style FITS standard output, for legacy software use.
  * Fast pixel-to-pixel performance for warping, and on small (~400px) postage stamps in multifit.
+ * Shared serialization format with GWCS_, to allow LSST files to be used in non-LSST code and vice-versa. (see, e.g. STC2_ as a possible route toward this). This requires that all transforms used by LSST are available within GWCS: LSST could contribute the required code to GWCS for any of our externally-visible transforms that they do not have.
 
 .. _STC2: https://volute.g-vo.org/svn/trunk/projects/dm/vo-dml/models/STC2/2016-02-19/VO-DML-STC2.html
 
 Coordinate and Transformation Requirements
 ------------------------------------------
- 
- * Pixel distortion effects that are frozen through one exposure (not Brighter-Fatter). These are likely our "exotic" ones, including e.g. tree rings, edge rolloff.
- * Mappings between camera coordinates must be entirely interoperable with image->sky transformations.
- * Compositions should only simplify when it can be done exactly, or when explicitly requested with a bound on accuracy.
- * Transforms should know their endpoints to ensure that composed transforms are valid to get between those endpoints.
- * Distinguish between spherical and Cartesian, to ensure correct geometry.
- * Likely do not need color/wavelength in WCS, if we define PSFs with offset centroids.
- * Method to invert transforms. If not invertible, should allow pre-defined one-way transforms to be identified as each-other's inverses.
- * Efficiently obtain exact transform at one point for warping. Needs to be fast and parallel.
- * Efficient parallel local linear approximation around a point.
- * Method for getting a local TAN WCS approximation.
- * Persistable as components of arbitrary objects (e.g. Exposure, Psf).
- * Persist groups of composed transforms efficiently e.g. for all CCDs in a visit. Unclear if this is necessary: the only obvious "heavyweight" transform is pixel distortion (e.g. tree rings), which is per-CCD anyway.
- * Parameterizable to compute or provide (at least) first derivatives, to simplify connection wtih XYTransform etc.
- * Polynomial/Chebyshev transforms are not enough. Need ability to add more transforms in the future as we discover a need for them.
- * Methods for easily creating simple WCS.
- * Combined post-ISR CCD, including initial guess from pointing, to feed into our astrometric solver.
+
+ * The ability to model all pixel distortion effects that are frozen through one exposure (not Brighter-Fatter). These are likely our "exotic" ones--e.g. tree rings, edge rolloff--that are not yet included in any currently existing distortion modeling system.
+ * Mappings between on-camera coordinate systems (i.e. the future versions of cameraGeom and XYTransform) must be entirely interoperable with image->sky (i.e. the future afw:Wcs) transformations.
+
+   * A method for easily creating simple WCS from e.g. existing files or a handful of on-sky values.
+   * A method to easily produce an initial guess WCS by combining the post-ISR CCD geometry and telescope pointing, to feed into our astrometric solver.
+
+ * Compositions of transforms should be simplifiable, for optimal performance and simpler serialization.
+
+   * Compositions should only simplify when it can be done exactly (to machine precision), or when explicitly requested with a bound on accuracy.
+
+ * Transforms should know their domain to ensure that composed transforms are valid between different domains.
+ * Transforms should know whether they involve spherical-spherical, spherical-Cartesian, Cartesian-spherical, or Cartesian-Cartesian coordinates, to allow interoperability with geometry libraries that distinguish these coordinate systems.
+ * Transforms should be invertible, or if not invertible should allow pre-defined one-way transforms to be identified as each-other's inverses.
+ * Ability to efficiently obtain the exact transform at one point for warping. This needs to be fast and parallelizable.
+ * Ability to efficiently obtain a local linear approximation around a point (must be parallelizable).
+ * A method for obtaining a local TAN WCS approximation.
+ * Transforms must be persistable as components of arbitrary objects (e.g. Exposure, Psf).
+
+   * Persist groups of composed transforms efficiently e.g. for all CCDs in a visit, to reduce data size. It is unclear if this is actually necessary: the only obvious "heavyweight" transform is pixel distortion (e.g. tree rings), which is per-CCD anyway.
+
+ * The ability to compute or provide derivatives with respect to pixel coordinates (to compute local affine transformations).
+
+   * If we use the same system for Fitters as we do for Consumers (see :ref:`_consumers-vs-fitters`), some transforms will need the ability to compute or provide (at least) first derivatives with respect to the parameters.
+
+ * The ability to add more transforms in the future as we discover a need for them: polynomial/Chebyshev transforms are not enough.
+ * We likely do `not` need to include wavelength-dependent effects (e.g. Differential Chromatic Refraction) in the WCS, if we define our PSFs with offset centroids.
+
+.. _consumers-vs-fitters:
 
 Models for Consumers vs. Fitters
 --------------------------------
 
-We may want to have separate model representations for astrometric fitting and for using the result of the fit. In the current LSST stack, we have an XYTransform_ as the interface for the consumer (fitted) model, while the Gtransfo_ object introduced in jointcal is a interface for a particular fitter.
+We may want to have separate model representations for astrometric fitting (Fitters) and for using the result of the fit (Consumers). In the current LSST stack, we have an XYTransform_ as the interface for the consumer (fitted) model, while the Gtransfo_ object introduced in jointcal is an interface for a particular fitter.
 
 .. _XYTransform: https://github.com/lsst/afw/blob/w.2016.15/include/lsst/afw/geom/XYTransform.h
 .. _Gtransfo: https://github.com/lsst/jointcal/blob/master/include/lsst/jointcal/Gtransfo.h
 
- * It's useful to separate fitter from consumer, as they may have different "best" representations.
- * It can be conceptually and programmatically helpful to have the same system (or API?) for both, to allow easy transfer between them.
- * Fitters must be mutable. Consumers need not be and may be better as immutable to allow the complex object to be safely shared.
- * Consumers must be persistable. Fitters may not need to be.
+ * It is useful to separate the fitter from the consumer, as they may have different "best" internal representations.
+ * It can be conceptually and programmatically helpful to have the same underlying system (or API) for both, to allow easy transfer between them.
+ * Fitters `must` be mutable. Consumers need not be and may be better as immutable to allow the complex object to be safely shared across threads.
+ * Consumers `must` be persistable. Fitters may not need to be.
 
 As a related point, it could be useful to have the same model description system available for other purposes (e.g. representing galaxy shapes, `photometric calibration <http://arxiv.org/abs/1203.6255>`_).
 
 Options
 =======
 
-There are essentially 6 options available to us, with varying tradeoffs between
-work required, flexibility, likely performance, callability from C++, and standardization in the broader community.
+There are essentially 6 options available to us, with varying tradeoffs between work required, flexibility, likely performance, callability from C++, and standardization in the broader community. These options are not necessarily mutually exclusive; in particular we could begin with :ref:`AST-as-is` or :ref:`AST-abstract` while developing a new system per :ref:`c++AST` or :ref:`adoptGWCS`. In addition, :ref:`AST-as-is` and :ref:`AST-abstract` are really two points in a continuum and we could evolve over time from one to the other as our needs and API design evolve.
 
-.. own:
+.. _develop-own:
 
 1. Develop our own
 ------------------
@@ -95,25 +107,25 @@ own WCS/distortion software (likely in C++, with a python interface),
 independent of any existing implementation. This seems like an obviously bad
 choice, given the work that has already gone into AST and GWCS.
 
-.. own-advantage:
+.. _own-advantage:
 
 Advantages
 ^^^^^^^^^^^
 
  * We have full control over the implementation of and interface to the models.
 
-.. own-disadvantage:
+.. _own-disadvantage:
 
 Disadvantages
 ^^^^^^^^^^^^^^
 
  * Significant time investment.
- * Yet Another WCS "Standard.""
+ * Yet Another WCS "Standard".
  * WCS and distortion models are complex objects: usable interface is challenging
    to develop.
  * Lessons learned by previous groups would be hard to capture.
 
-.. wcslib:
+.. _use-wcslib:
 
 2. Build on top of WCSLIB
 --------------------------
@@ -123,7 +135,7 @@ WCSLIB_. This has the advantage that of not having to re-implement the FITS-WCS
 standard, but may be limiting in what we would be able to build on top of it,
 in addition to requiring nearly as much effort as option 1, above.
 
-.. wcslib-advantage:
+.. _wcslib-advantage:
 
 Advantages
 ^^^^^^^^^^^
@@ -131,7 +143,7 @@ Advantages
  * We have nearly full control over the implementation of and interface to the models.
  * FITS-WCS standard immediately available to us.
 
-.. wcslib-disadvantage:
+.. _wcslib-disadvantage:
 
 Disadvantages
 ^^^^^^^^^^^^^^
@@ -143,21 +155,20 @@ Disadvantages
    to develop.
  * Lessons learned by previous groups would be hard to capture.
 
-.. AST:
+.. _AST-as-is:
 
 3. Adopt Starlink AST as-is
 ---------------------------
 
-The Starlink AST_ package,
-written in "Object Oriented C", provides a large suite of composeable
+The Starlink AST_ package, written in "Object Oriented C", provides a large suite of composeable
 transformation classes, including mapping simplification to reduce the number of
 steps required to e.g. go from one focal plane to another, possibly avoiding
 having to transform all the way to the sky. It provides an option to compute a
 transformation (sequence of mappings) using local linear approximations for fast
-calculation. We could use AST directly in place of afw.wcs, exposing all of its
+calculation. We could use AST directly in place of afw.image.wcs, exposing all of its
 methods to the end user without a C++ interface.
 
-.. AST-advantage:
+.. _AST-as-is-advantage:
 
 Advantages
 ^^^^^^^^^^^
@@ -167,33 +178,33 @@ Advantages
  * More complicated distortion models immediately available to us.
  * API for adding additional models.
  * AST is written in C, so is callable from C++.
- * Python interface to AST already developed: pyast.
+ * Python interface to AST already developed: PyAST_.
  * Significant work already invested in performance, including a local linear approximation to a specified accuracy.
  * Signfiicant documentation already exists.
 
-.. AST-disadvantage:
+.. _AST-as-is-disadvantage:
 
 Disadvantages
 ^^^^^^^^^^^^^^
- 
+
  * Existing documentation often opaque.
- * pyast documentation very sparse.
+ * PyAST_ documentation very sparse.
  * Written in "Object Oriented C" - major long-term maintainability question.
  * API could use significant refactoring.
  * David Berry will very likely retire around the time of LSST commissioning: LSST-DM would become the de-facto owners of AST.
 
-.. abstractAST:
+.. _AST-abstract:
 
 4. Adopt Starlink AST with LSST C++ abstraction layer
 -----------------------------------------------------
 
 Instead of directly using AST_, we could wrap it a C++ abstraction layer, making
-the interface more similar to the current afw.wcs. This would require more
+the interface more similar to the current afw.image.wcs. This would require more
 initial work than just using AST, and would require additional effort to write
 an interface for any part of AST that we did not wrap that we discovered we
 needed later.
 
-.. abstractAST-advantage:
+.. _AST-abstract-advantage:
 
 Advantages
 ^^^^^^^^^^^
@@ -204,25 +215,25 @@ Advantages
  * More complicated distortion models immediately available to us.
  * API for adding additional models.
  * AST is written in C, so is callable from C++.
- * Python interface to AST already developed: pyast.
+ * Python interface to AST already developed: PyAST_.
  * Significant work already invested in performance.
  * Signfiicant documentation already exists.
 
-.. abstractAST-disadvantage:
+.. _AST-abstract-disadvantage:
 
 Disadvantages
 ^^^^^^^^^^^^^^
- 
+
  * Moderate time investment.
  * Cannot easily leverage full power of AST machinery.
  * Would have to provide separate documentation of our C++ API.
  * Existing documentation often opaque.
- * pyast documentation very sparse.
+ * PyAST_ documentation very sparse.
  * Written in "Object Oriented C" - major long-term maintainability question.
  * API could use significant refactoring.
  * David Berry will very likely retire around the time of LSST commissioning: LSST-DM would become the de-facto owners of AST.
 
-.. adoptGWCS:
+.. _adoptGWCS:
 
 5. Adopt AstroPy GWCS
 ---------------------
@@ -235,7 +246,7 @@ Complex models can be built from more simple models via standard mathematical
 operations, and can be composed and chained in serial and parallel. It is under
 active development, so LSST could have a hand in shaping its future path.
 
-.. GWCS-advantage:
+.. _GWCS-advantage:
 
 Advantages
 ^^^^^^^^^^^
@@ -248,18 +259,18 @@ Advantages
  * Community adoption likely very high.
  * Would share development effort with STScI.
 
-.. GWCS-disadvantage:
+.. _GWCS-disadvantage:
 
 Disadvantages
 ^^^^^^^^^^^^^^
 
  * Significant time investment: current code manipulates WCS in C++.
- * Not directly callable from C++: calls to python from C++ may incure signifcant overhead.
+ * Not directly callable from C++: calls to python from C++ may incur signifcant overhead.
  * Model description framework is pure python: unclear if performance requirements can be met, particularly for warping.
  * Ongoing development work: not all features we may need are available.
  * No effort yet on performance optimizations.
 
-.. c++AST:
+.. _c++AST:
 
 6. Work with David Berry to develop modern C++ version of AST
 -------------------------------------------------------------
@@ -269,9 +280,11 @@ Section 6 of the `AST paper <http://arxiv.org/abs/1602.06681>`_ discusses
 C++, if they were starting development now. David Berry is interested in
 re-implementing AST in a modern language as a legacy to the community. LSST
 could contract him out and guide the development of a new implentation of AST
-that we could use from C++, while solving some of the current limitations in AST (e.g. adding quad-double precision for time, better unit support, unclear API).
+that we could use from C++, while solving some of the current limitations in AST (e.g. adding quad-double precision for time, better unit support, clearer API).
 
-.. c++AST-advantage:
+As part of this process, the astropy.modeling API should be used as a reference for how to create and combine models. Their method of using mathematical operations to combine transforms makes the creation of complicated models from simpler components highly intuitive, and presents a good design to build a C++ transformation system from.
+
+.. _c++AST-advantage:
 
 Advantages
 ^^^^^^^^^^^
@@ -283,7 +296,7 @@ Advantages
  * David Berry willing to be contracted out for development.
  * major portions of AST code likely can be copied to new interface with minimal changes (e.g. FITS WCS support).
 
-.. c++AST-disadvantage:
+.. _c++AST-disadvantage:
 
 Disadvantages
 ^^^^^^^^^^^^^^
@@ -295,6 +308,8 @@ Disadvantages
 
 Recommendations
 ===============
+
+TODO: current warping is C++, unclear whether (time significant) rewrite to python+GWCS would be performant enough.
 
 .. warning::
  This section currently under development!
