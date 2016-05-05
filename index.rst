@@ -7,25 +7,28 @@
   Do not put the title, authors or other metadata in this document;
   those are automatically added.
 
-:tocdepth: 1
+:tocdepth: 2
 
 Introduction
 ============
 
 LSST-DM currently uses WCSLIB_ to persist/un-persist and manipulate
 World Coordinate System (WCS) transformations. WCSLIB is based on the work by
-Greisen & Calabretta, which is specifically focused on the FITS WCS standard.
+`Greisen & Calabretta 2002`_, which were incorporated into the `FITS WCS standard`_.
 This standard only supports distortion models involving 7th order polynomials, which severly limits its ability to describe complex focal plane and on-sky distortions. Most previous projects have employed this, or a related FITS WCS-based library, usually with some home-built custom functionality, to manage their astrometric results.
 
 .. _WCSLIB: http://www.atnf.csiro.au/people/mcalabre/WCS/
+.. _Greisen & Calabretta 2002: http://adsabs.harvard.edu/abs/2002A%26A...395.1061G
+.. _FITS WCS standard: http://fits.gsfc.nasa.gov/fits_wcs.html
 
-There is no standardized method in the astronomical community to improve upon or extend the FITS WCS standard. The `Simple Imaging Polynomial convention <http://fits.gsfc.nasa.gov/registry/sip.html>`_ allows a distortion model represented by a polynomial of up to 9th order. The DECam community pipeline uses the `TPV convention <http://fits.gsfc.nasa.gov/registry/tpvwcs.html>`_ which allows a 7th-order polynomial distortion correction. SDSS produced their own `asTran model <https://data.sdss.org/datamodel/files/PHOTO_REDUX/RERUN/RUN/astrom/asTrans.html>`_ to map the (row,column) coordinates from each field into `(mu,nu) <https://www.sdss3.org/dr8/algorithms/surveycoords.php>`_ great circle spherical coordinates via a 3rd order polynomial.
+There is no standardized method in the astronomical community to improve upon or extend the `FITS WCS standard`_. The `Simple Imaging Polynomial convention <http://fits.gsfc.nasa.gov/registry/sip.html>`_ allows a distortion model represented by a polynomial of up to 9th order. The DECam community pipeline uses the `TPV convention <http://fits.gsfc.nasa.gov/registry/tpvwcs.html>`_ which allows a 7th-order polynomial distortion correction. SDSS produced their own `asTran model <https://data.sdss.org/datamodel/files/PHOTO_REDUX/RERUN/RUN/astrom/asTrans.html>`_ to map the (row,column) coordinates from each field into `(mu,nu) <https://www.sdss3.org/dr8/algorithms/surveycoords.php>`_ great circle spherical coordinates via a 3rd order polynomial.
 
-Two much more flexible, powerful, and extensible systems are Starlink AST_ and STScI's GWCS_. The Starlink AST_ package, developed by David Berry (East Asian Observatory) in C, with a python interface written by Tim Jenness (PyAST_), provides models that can be combined in a variety of ways, but it is not widely used. Nadia Dencheva and Perry Greenfield (STScI) are developing a python-based Generalized World Coordinate System package (GWCS_), building top of astropy.modeling for JWST.
+Two much more flexible, powerful, and extensible systems are Starlink AST_ and STScI's GWCS_. The Starlink AST_ package, developed by David Berry (East Asian Observatory) in C, with a python interface (PyAST_) written by Tim Jenness, provides models that can be combined in a variety of ways, but it is not widely used. Nadia Dencheva and Perry Greenfield (STScI) are developing a python-based Generalized World Coordinate System package (GWCS_), building top of `astropy.modeling`_ for JWST.
 
 .. _AST: http://starlink.eao.hawaii.edu/starlink/AST
 .. _PyAST: http://timj.github.io/starlink-pyast/pyast.html
 .. _GWCS: https://github.com/spacetelescope/gwcs
+.. _astropy.modeling: http://docs.astropy.org/en/stable/modeling/
 
 This document discusses the expected requirements for the LSST distortion model and coordinate transform system, the options we have to select from, and provides a recommendation for how we should achieve our requirements.
 
@@ -39,11 +42,12 @@ LSST's most critical requirements are:
 
  * Specifying complex parametric and non-parametric models.
  * Arbitrary combinations/compositions of those models.
- * Ability to provide approximate WCSLIB_-style FITS standard output, for legacy software use.
+ * Ability to provide approximate WCSLIB_-style `FITS WCS standard`_ output, for legacy software use.
  * Fast pixel-to-pixel performance for warping, and on small (~400px) postage stamps in multifit.
- * Shared serialization format with GWCS_, to allow LSST files to be used in non-LSST code and vice-versa. (see, e.g. STC2_ as a possible route toward this). This requires that all transforms used by LSST are available within GWCS: LSST could contribute the required code to GWCS for any of our externally-visible transforms that they do not have.
+ * Shared serialization format with GWCS_, to allow LSST files to be used in non-LSST code and vice-versa (at a recent joint meeting, LSST and AstroPy representatives discussed leveraging the work the IVOA has done on STC2_ as a possible route toward this). This requires that all transforms used by LSST are available within GWCS: LSST could contribute the required code to GWCS for any of our externally-visible transforms that they do not have.
 
 .. _STC2: https://volute.g-vo.org/svn/trunk/projects/dm/vo-dml/models/STC2/2016-02-19/VO-DML-STC2.html
+.. _AstroPy: http://www.astropy.org/
 
 Coordinate and Transformation Requirements
 ------------------------------------------
@@ -66,7 +70,8 @@ Coordinate and Transformation Requirements
  * A method for obtaining a local TAN WCS approximation.
  * Transforms must be persistable as components of arbitrary objects (e.g. Exposure, Psf).
 
-   * Groups of composed transforms should be persisted efficiently, e.g. for all CCDs in a visit, to reduce data size. It is unclear if this is actually necessary: the only obvious "heavyweight" transform is pixel distortion (e.g. tree rings), which is per-CCD anyway.
+   * Groups of composed transforms should be persisted efficiently, e.g. for all CCDs in a visit, to reduce data size. It is unclear if this is actually necessary: the only obvious "heavyweight" transform is pixel distortion (e.g. tree rings), which is per-CCD anyway, while other transforms will likely be a very small part of our data volume.
+   * An efficient (compressed?) persistance format for pixel-grid-based transformations will be necessary if we end up using full pixel grids to represent pixel distortions.
 
  * The ability to compute or provide derivatives with respect to pixel coordinates (to compute local affine transformations).
 
@@ -95,7 +100,7 @@ As a related point, it could be useful to have the same model description system
 Options
 =======
 
-There are essentially 6 options available to us, with varying tradeoffs between work required, flexibility, likely performance, callability from C++, and standardization in the broader community. These options are not necessarily mutually exclusive; in particular we could begin with :ref:`AST-as-is` or :ref:`AST-abstract` while developing a new system per :ref:`c++AST` or :ref:`adoptGWCS`. In addition, :ref:`AST-as-is` and :ref:`AST-abstract` are really two points in a continuum and we could evolve over time from one to the other as our needs and API design evolve.
+There are essentially 6 options available to us, with varying tradeoffs between work required, flexibility, likely performance, callability from C++, and standardization in the broader community. These options are not necessarily mutually exclusive; in particular we could begin with :ref:`AST-as-is` or :ref:`AST-abstract` while developing a new system per :ref:`adoptGWCS` or :ref:`c++AST`. In addition, :ref:`AST-as-is` and :ref:`AST-abstract` are really two points in a continuum and we could evolve over time from one to the other as our needs and API design evolve.
 
 .. _develop-own:
 
@@ -131,8 +136,8 @@ Disadvantages
 --------------------------
 
 Instead of starting entirely from scratch, we could continue to build on top of
-WCSLIB_. This has the advantage that of not having to re-implement the FITS-WCS
-standard, but may be limiting in what we would be able to build on top of it,
+WCSLIB_. This has the advantage of not having to re-implement the `FITS WCS
+standard`_, but may be limiting in what we would be able to build on top of it,
 in addition to requiring nearly as much effort as option 1, above.
 
 .. _wcslib-advantage:
@@ -141,7 +146,7 @@ Advantages
 ^^^^^^^^^^^
 
  * We have nearly full control over the implementation of and interface to the models.
- * FITS-WCS standard immediately available to us.
+ * FITS WCS standard immediately available to us.
 
 .. _wcslib-disadvantage:
 
@@ -150,7 +155,7 @@ Disadvantages
 
  * Significant time investment.
  * Enhancements on top of FITS are Yet Another WCS "Standard."
- * FITS-WCS has inherent limitations in namespace, extensibility, flexibility.
+ * FITS WCS has inherent limitations in namespace, extensibility, flexibility.
  * WCS and distortion models are complex objects: usable interface is challenging
    to develop.
  * Lessons learned by previous groups would be hard to capture.
@@ -174,7 +179,7 @@ Advantages
 ^^^^^^^^^^^
 
  * Minimal initial time investment.
- * FITS-WCS standard immediately available to us.
+ * FITS WCS standard immediately available to us.
  * More complicated distortion models immediately available to us.
  * API for adding additional models.
  * AST is written in C, so is callable from C++.
@@ -211,7 +216,7 @@ Advantages
 
  * Allows flexibility in switching libraries in the future.
  * Abstract away some of the more confusing portions of C API.
- * FITS-WCS standard immediately available to us.
+ * FITS WCS standard immediately available to us.
  * More complicated distortion models immediately available to us.
  * API for adding additional models.
  * AST is written in C, so is callable from C++.
@@ -238,10 +243,7 @@ Disadvantages
 5. Adopt AstroPy GWCS
 ---------------------
 
-GWCS_ is a Generalized World
-Coordinate System library currently being developed by STScI for use by JWST. It
-is written in pure python, and built on top of the
-`astropy.modeling <http://docs.astropy.org/en/stable/modeling/>`_ framework.
+GWCS_ is a Generalized World Coordinate System library currently being developed by STScI for use by JWST. It is written in pure python, and built on top of the `astropy.modeling`_  framework.
 Complex models can be built from more simple models via standard mathematical
 operations, and can be composed and chained in serial and parallel. It is under
 active development, so LSST could have a hand in shaping its future path.
@@ -251,13 +253,17 @@ active development, so LSST could have a hand in shaping its future path.
 Advantages
 ^^^^^^^^^^^
 
- * FITS-WCS standard immediately available to us (not clear if all portions of G&C 2002, C&G 2002, C. et al. 2004 are currently implemented).
+ * FITS WCS standard immediately available to us (not clear if all portions of `Greisen & Calabretta 2002`_, `Calabretta & Greisen 2002`_, `Calabretta et al. 2004`_ are currently implemented).
  * More complicated distortion models immediately available to us.
  * Pure python, allowing easy extension.
- * API for adding additional models.
+ * Clean API for adding additional models.
  * Signficant and understandable documentation already exists.
  * Community adoption likely very high.
  * Would share development effort with STScI.
+
+.. _Greisen & Calabretta 2002: http://adsabs.harvard.edu/abs/2002A%26A...395.1061G
+.. _Calabretta & Greisen 2002: http://adsabs.harvard.edu/abs/2002A%26A...395.1077C
+.. _Calabretta et al. 2004: http://fits.gsfc.nasa.gov/wcs/dcs_20040422.pdf
 
 .. _GWCS-disadvantage:
 
@@ -282,7 +288,7 @@ re-implementing AST in a modern language as a legacy to the community. LSST
 could contract him out and guide the development of a new implentation of AST
 that we could use from C++, while solving some of the current limitations in AST (e.g. adding quad-double precision for time, better unit support, clearer API).
 
-As part of this process, the astropy.modeling API should be used as a reference for how to create and combine models. Their method of using mathematical operations to combine transforms makes the creation of complicated models from simpler components highly intuitive, and presents a good design to build a C++ transformation system from.
+As part of this process, the `astropy.modeling`_ API should be used as a reference for how to create and combine models. Their method of using mathematical operations to combine transforms makes the creation of complicated models from simpler components highly intuitive, and presents a good design to build a C++ transformation system from.
 
 .. _c++AST-advantage:
 
