@@ -20,7 +20,7 @@ authors:
     - 'John Parejko'
 
 # Current document version
-last_revised: '2016-03-01'
+last_revised: '2016-05-04'
 
 # Version. Use Semvar, e.g., 1.0, including .dev, as necessary
 # This version string should correspond to the git tag when the document is published on Zenodo
