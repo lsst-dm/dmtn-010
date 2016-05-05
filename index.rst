@@ -125,6 +125,7 @@ Disadvantages
 ^^^^^^^^^^^^^^
 
  * Significant time investment.
+ * FITS WCS standard not immediately available to us.
  * Yet Another WCS "Standard".
  * WCS and distortion models are complex objects: usable interface is challenging
    to develop.
@@ -135,10 +136,7 @@ Disadvantages
 2. Build on top of WCSLIB
 --------------------------
 
-Instead of starting entirely from scratch, we could continue to build on top of
-WCSLIB_. This has the advantage of not having to re-implement the `FITS WCS
-standard`_, but may be limiting in what we would be able to build on top of it,
-in addition to requiring nearly as much effort as option 1, above.
+Instead of starting entirely from scratch, we could continue to build on top of WCSLIB_. This has the advantage of not having to re-implement the `FITS WCS standard`_, but may be limiting in what we would be able to build on top of it, in addition to requiring nearly as much effort as option 1, above.
 
 .. _wcslib-advantage:
 
