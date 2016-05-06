@@ -53,7 +53,7 @@ Coordinate and Transformation Requirements
 ------------------------------------------
 
  * The ability to model all pixel distortion effects that are frozen through one exposure (not Brighter-Fatter). These are likely our "exotic" ones--e.g. tree rings, edge roll-off--that are not yet included in any currently existing distortion modeling system.
- * Mappings between on-camera coordinate systems (i.e. the future versions of `afw.cameraGeom`_ and `afw.geom.XYTransform`_) must be entirely interoperable with image->sky (i.e. the future afw.imageWcs) transformations.
+ * Mappings between on-camera coordinate systems (i.e. the future versions of `afw.cameraGeom`_ and `afw.geom.XYTransform`_) must be entirely interoperable with image->sky (i.e. the future `afw.image.Wcs`_) transformations.
 
    * A method for easily creating simple WCS from e.g. existing files or a handful of on-sky values.
    * A method to easily produce an initial guess WCS by combining the post-ISR CCD geometry and telescope pointing, to feed into our astrometric solver.
@@ -81,6 +81,7 @@ Coordinate and Transformation Requirements
  * We likely do `not` need to include wavelength-dependent effects (e.g. Differential Chromatic Refraction) in the WCS, if we define our PSFs with offset centroids.
 
 .. _afw.cameraGeom: https://github.com/lsst/afw/blob/w.2016.15/python/lsst/afw/cameraGeom/
+.. _afw.image.Wcs: https://github.com/lsst/afw/blob/w.2016.15/include/lsst/afw/image/Wcs.h
 
 .. _consumers-vs-fitters:
 
@@ -170,7 +171,7 @@ transformation classes, including mapping simplification to reduce the number of
 steps required to e.g. go from one focal plane to another, possibly avoiding
 having to transform all the way to the sky. It provides an option to compute a
 transformation (sequence of mappings) using local linear approximations for fast
-calculation. We could use AST directly in place of afw.image.wcs, exposing all of its
+calculation. We could use AST directly in place of afw.image.Wcs, exposing all of its
 methods to the end user without a C++ interface.
 
 .. _AST-as-is-advantage:
@@ -204,7 +205,7 @@ Disadvantages
 -----------------------------------------------------
 
 Instead of directly using AST_, we could wrap it a C++ abstraction layer, making
-the interface more similar to the current afw.image.wcs. This would require more
+the interface more similar to the current afw.image.Wcs. This would require more
 initial work than just using AST, and would require additional effort to write
 an interface for any part of AST that we did not wrap that we discovered we
 needed later.
@@ -315,3 +316,14 @@ Disadvantages
 Recommendations
 ===============
 
+Although adopting GWCS would be ideal from the perspective of community involvement, there are two main reasons we are not pursuing that option at this time:
+
+ 1. It is unclear whether GWCS would be able to achieve our required performance targets when computing transformations on small pixel regions. Our testing found a very `significant overhead`_ (10-20 times slower) when using GWCS over small (~100-1000) pixel regions. Some of this overhead could be removed if LSST put effort into optimizing GWCS, but it is unclear whether optimizations to a python library would be sufficient for our needs. It is even less clear whether we could use a python-based WCS and transform library from within C++ without sustaining a significant performance penalty.
+ 2. Our current warping code--`afw.math.warpExposure`_--is written purely in C++ and would incur a significant effort to rewrite in python. Warping involves calculations on small patches in a manner that is not easily vectorized. Because of the concerns about performance on small patches described above, it is unclear if the new product would be performant enough to justify the effort.
+
+So long as we insist on sharing a serialization format with GWCS and work together to ensure we can round-trip data between the projects, we would retain the option of using GWCS in the future.
+
+Given the requirements, options, and caveats listed above, our recommendation is to immediately begin implementing a rewrite of `afw.image.Wcs`_, `afw.cameraGeom`_ and `afw.geom.XYTransform`_ on top of AST, while pursuing a new C++ rewrite of AST that takes into account the lessons learned from the design and API of astropy.modeling and GWCS. We will decide how much to abstract AST as we design the new afw API, and that API can help guide the new C++-based AST rewrite.
+
+.. _significant overhead: https://jira.lsstcorp.org/browse/DM-5701
+.. _afw.math.warpExposure: https://github.com/lsst/afw/blob/w.2016.15/include/lsst/afw/math/warpExposure.h
