@@ -52,7 +52,7 @@ LSST's most critical requirements are:
 Coordinate and Transformation Requirements
 ------------------------------------------
 
- * The ability to model all pixel distortion effects that are frozen through one exposure (not Brighter-Fatter). These are likely our "exotic" ones--e.g. tree rings, edge rolloff--that are not yet included in any currently existing distortion modeling system.
+ * The ability to model all pixel distortion effects that are frozen through one exposure (not Brighter-Fatter). These are likely our "exotic" ones--e.g. tree rings, edge roll-off--that are not yet included in any currently existing distortion modeling system.
  * Mappings between on-camera coordinate systems (i.e. the future versions of `afw.cameraGeom`_ and `afw.geom.XYTransform`_) must be entirely interoperable with image->sky (i.e. the future afw.imageWcs) transformations.
 
    * A method for easily creating simple WCS from e.g. existing files or a handful of on-sky values.
@@ -65,13 +65,13 @@ Coordinate and Transformation Requirements
  * Transforms should know their domain to ensure that composed transforms are valid between different domains.
  * Transforms should know whether they involve spherical-spherical, spherical-Cartesian, Cartesian-spherical, or Cartesian-Cartesian coordinates, to allow interoperability with geometry libraries that distinguish these coordinate systems.
  * Transforms should be invertible, or if not invertible should allow pre-defined one-way transforms to be identified as each-other's inverses.
- * Ability to efficiently obtain the exact transform at one point for warping. This needs to be fast and parallelizable.
- * Ability to efficiently obtain a local linear approximation around a point (must be parallelizable).
+ * Ability to efficiently obtain the exact transform at one point for warping. This needs to be fast and parallel.
+ * Ability to efficiently obtain a local linear approximation around a point (must be parallel).
  * A method for obtaining a local TAN WCS approximation.
  * Transforms must be persistable as components of arbitrary objects (e.g. Exposure, Psf).
 
    * Groups of composed transforms should be persisted efficiently, e.g. for all CCDs in a visit, to reduce data size. It is unclear if this is actually necessary: the only obvious "heavyweight" transform is pixel distortion (e.g. tree rings), which is per-CCD anyway, while other transforms will likely be a very small part of our data volume.
-   * An efficient (compressed?) persistance format for pixel-grid-based transformations will be necessary if we end up using full pixel grids to represent pixel distortions.
+   * An efficient (compressed?) persistence format for pixel-grid-based transformations will be necessary if we end up using full pixel grids to represent pixel distortions.
 
  * The ability to compute or provide derivatives with respect to pixel coordinates (to compute local affine transformations).
 
@@ -102,7 +102,7 @@ As a related point, it could be useful to have the same model description system
 Options
 =======
 
-There are essentially 6 options available to us, with varying tradeoffs between work required, flexibility, likely performance, callability from C++, and standardization in the broader community. These options are not necessarily mutually exclusive; in particular we could begin with :ref:`AST-as-is` or :ref:`AST-abstract` while developing a new system per :ref:`adoptGWCS` or :ref:`c++AST`. In addition, :ref:`AST-as-is` and :ref:`AST-abstract` are really two points in a continuum and we could evolve over time from one to the other as our needs and API design evolve.
+There are essentially 6 options available to us, with varying trade-offs between work required, flexibility, likely performance, ease of calling from C++, and standardization in the broader community. These options are not necessarily mutually exclusive; in particular we could begin with :ref:`AST-as-is` or :ref:`AST-abstract` while developing a new system per :ref:`adoptGWCS` or :ref:`c++AST`. In addition, :ref:`AST-as-is` and :ref:`AST-abstract` are really two points in a continuum and we could evolve over time from one to the other as our needs and API design evolve.
 
 .. _develop-own:
 
@@ -165,7 +165,7 @@ Disadvantages
 3. Adopt Starlink AST as-is
 ---------------------------
 
-The Starlink AST_ package, written in "Object Oriented C", provides a large suite of composeable
+The Starlink AST_ package, written in "Object Oriented C", provides a large suite of composable
 transformation classes, including mapping simplification to reduce the number of
 steps required to e.g. go from one focal plane to another, possibly avoiding
 having to transform all the way to the sky. It provides an option to compute a
@@ -185,7 +185,7 @@ Advantages
  * AST is written in C, so is callable from C++.
  * Python interface to AST already developed: PyAST_.
  * Significant work already invested in performance, including a local linear approximation to a specified accuracy.
- * Signfiicant documentation already exists.
+ * Significant documentation already exists.
 
 .. _AST-as-is-disadvantage:
 
@@ -257,7 +257,7 @@ Advantages
  * More complicated distortion models immediately available to us.
  * Pure python, allowing easy extension.
  * Clean API for adding additional models.
- * Signficant and understandable documentation already exists.
+ * Significant and understandable documentation already exists.
  * Community adoption likely very high.
  * Would share development effort with STScI.
 
@@ -271,7 +271,7 @@ Disadvantages
 ^^^^^^^^^^^^^^
 
  * Significant time investment: current code manipulates WCS in C++.
- * Not directly callable from C++: calls to python from C++ may incur signifcant overhead.
+ * Not directly callable from C++: calls to python from C++ may incur significant overhead.
  * Model description framework is pure python: unclear if performance requirements can be met, particularly for warping.
  * Ongoing development work: not all features we may need are available.
  * No effort yet on performance optimizations.
@@ -285,7 +285,7 @@ Section 6 of the `AST paper <http://arxiv.org/abs/1602.06681>`_ discusses
 "lessons learned", including a statement that they would have developed it in
 C++, if they were starting development now. David Berry is interested in
 re-implementing AST in a modern language as a legacy to the community. LSST
-could contract him out and guide the development of a new implentation of AST
+could contract him out and guide the development of a new implementation of AST
 that we could use from C++, while solving some of the current limitations in AST (e.g. adding quad-double precision for time, better unit support, clearer API).
 
 As part of this process, the `astropy.modeling`_ API should be used as a reference for how to create and combine models. Their method of using mathematical operations to combine transforms makes the creation of complicated models from simpler components highly intuitive, and presents a good design to build a C++ transformation system from.
@@ -309,15 +309,9 @@ Disadvantages
 
  * Significant time investment (shared with David Berry).
  * Details of contract with East Asian Observatory need to be developed.
- * Requires LSST C++ expertise to design new API, and produce ideomatic C++.
+ * Requires LSST C++ expertise to design new API, and produce idiomatic C++.
  * Unclear how much LSST guidance would be required to make a long-term supportable, well documented API.
 
 Recommendations
 ===============
 
-TODO: current warping is C++, unclear whether (time significant) rewrite to python+GWCS would be performant enough.
-
-.. warning::
- This section currently under development!
-
-TBD
