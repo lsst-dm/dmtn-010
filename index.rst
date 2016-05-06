@@ -53,7 +53,7 @@ Coordinate and Transformation Requirements
 ------------------------------------------
 
  * The ability to model all pixel distortion effects that are frozen through one exposure (not Brighter-Fatter). These are likely our "exotic" ones--e.g. tree rings, edge rolloff--that are not yet included in any currently existing distortion modeling system.
- * Mappings between on-camera coordinate systems (i.e. the future versions of cameraGeom and XYTransform) must be entirely interoperable with image->sky (i.e. the future afw:Wcs) transformations.
+ * Mappings between on-camera coordinate systems (i.e. the future versions of `afw.cameraGeom`_ and `afw.geom.XYTransform`_) must be entirely interoperable with image->sky (i.e. the future afw.imageWcs) transformations.
 
    * A method for easily creating simple WCS from e.g. existing files or a handful of on-sky values.
    * A method to easily produce an initial guess WCS by combining the post-ISR CCD geometry and telescope pointing, to feed into our astrometric solver.
@@ -80,14 +80,16 @@ Coordinate and Transformation Requirements
  * The ability to add more transforms in the future as we discover a need for them: polynomial/Chebyshev transforms are not enough.
  * We likely do `not` need to include wavelength-dependent effects (e.g. Differential Chromatic Refraction) in the WCS, if we define our PSFs with offset centroids.
 
+.. _afw.cameraGeom: https://github.com/lsst/afw/blob/w.2016.15/python/lsst/afw/cameraGeom/
+
 .. _consumers-vs-fitters:
 
 Models for Consumers vs. Fitters
 --------------------------------
 
-We may want to have separate model representations for astrometric fitting (Fitters) and for using the result of the fit (Consumers). In the current LSST stack, we have an XYTransform_ as the interface for the consumer (fitted) model, while the Gtransfo_ object introduced in jointcal is an interface for a particular fitter.
+We may want to have separate model representations for astrometric fitting (Fitters) and for using the result of the fit (Consumers). In the current LSST stack, we have an afw.geom.XYTransform_ as the interface for the consumer (fitted) model, while the Gtransfo_ object introduced in jointcal is an interface for a particular fitter.
 
-.. _XYTransform: https://github.com/lsst/afw/blob/w.2016.15/include/lsst/afw/geom/XYTransform.h
+.. _afw.geom.XYTransform: https://github.com/lsst/afw/blob/w.2016.15/include/lsst/afw/geom/XYTransform.h
 .. _Gtransfo: https://github.com/lsst/jointcal/blob/master/include/lsst/jointcal/Gtransfo.h
 
  * It is useful to separate the fitter from the consumer, as they may have different "best" internal representations.
