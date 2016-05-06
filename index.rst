@@ -318,7 +318,7 @@ Recommendations
 
 Although adopting GWCS would be ideal from the perspective of community involvement, there are two main reasons we are not pursuing that option at this time:
 
- 1. It is unclear whether GWCS would be able to achieve our required performance targets when computing transformations on small pixel regions. Our testing found a very `significant overhead`_ (10-20 times slower) when using GWCS over small (~100-1000) pixel regions (see the :doc:`performance test files here<_static/compare_gwcs_ast>`). Some of this overhead could be removed if LSST put effort into optimizing GWCS, but it is unclear whether optimizations to a python library would be sufficient for our needs. It is even less clear whether we could use a python-based WCS and transform library from within C++ without sustaining a significant performance penalty.
+ 1. It is unclear whether GWCS would be able to achieve our required performance targets when computing transformations on small pixel regions. Our testing found a very `significant overhead`_ (10-20 times slower) when using GWCS over small (~100-1000) pixel regions (see `appendix pyast/gwcs`_). Some of this overhead could be removed if LSST put effort into optimizing GWCS, but it is unclear whether optimizations to a python library would be sufficient for our needs. It is even less clear whether we could use a python-based WCS and transform library from within C++ without sustaining a significant performance penalty.
  2. Our current warping code--`afw.math.warpExposure`_--is written purely in C++ and would incur a significant effort to rewrite in python. Warping involves calculations on small patches in a manner that is not easily vectorized. Because of the concerns about performance on small patches described above, it is unclear if the new product would be performant enough to justify the effort.
 
 So long as we insist on sharing a serialization format with GWCS and work together to ensure we can round-trip data between the projects, we would retain the option of using GWCS in the future.
@@ -327,3 +327,17 @@ Given the requirements, options, and caveats listed above, our recommendation is
 
 .. _significant overhead: https://jira.lsstcorp.org/browse/DM-5701
 .. _afw.math.warpExposure: https://github.com/lsst/afw/blob/w.2016.15/include/lsst/afw/math/warpExposure.h
+
+.. _appendix pyast/gwcs:
+
+Appendix: PyAst/GWCS Performance Comparison
+===========================================
+
+ * Download :download:`PyAst/GWCS comparison python<_static/compare_gwcs_ast.py>`.
+ * Download :download:`sample file generator python<_static/makeExposure.py>`.
+
+Python comparison code is shown below. This requires having recent versions of both PyAst and GWCS installed.
+
+.. literalinclude::
+  _static/compare_gwcs_ast.py
+
