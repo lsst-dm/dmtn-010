@@ -1,3 +1,4 @@
+#!/usr/bin/env ipython
 """Comparison between GWCS and AST.
 
 You must run this with ipython and you must create simple.fits first. Thus:
@@ -196,7 +197,7 @@ def build_ast(hdu):
 
 if __name__ == "__main__":
     currdir = os.path.dirname(__file__)
-    infile = os.path.join(currdir, "simple.fits")
+    infile = os.path.join(currdir, "simple.fits.gz")
     hdu = pyfits.open(infile)[1] # reading in a MaskedImage; image is in HDU 1
     imarr = hdu.data
 
@@ -233,7 +234,7 @@ if __name__ == "__main__":
     # Timing comparisons
 
     magic = get_ipython().magic  # flake8: noqa: ipython-specific code
-    
+
     nx = imarr.shape[0]
     ny = imarr.shape[1]
     for numxpts in (10, 100, 1000):
