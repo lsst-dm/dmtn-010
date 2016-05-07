@@ -336,7 +336,7 @@ Appendix: PyAst/GWCS Performance Comparison
  * Download :download:`PyAst/GWCS comparison python<_static/compare_gwcs_ast.py>`.
  * Download :download:`sample file generator python<_static/makeExposure.py>`.
 
-Python comparison code is shown below. This requires having recent versions of both PyAst and GWCS installed.
+Python comparison code is shown below. This requires having recent versions of both PyAst and GWCS installed. Both are available to install via pip.
 
 .. literalinclude::
   _static/compare_gwcs_ast.py
