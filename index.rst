@@ -15,20 +15,21 @@ Introduction
 LSST-DM currently uses WCSLIB_ to persist/un-persist and manipulate
 World Coordinate System (WCS) transformations. WCSLIB is based on the work by
 `Greisen & Calabretta 2002`_, which were incorporated into the `FITS WCS standard`_.
-This standard only supports distortion models involving 7th order polynomials, which severly limits its ability to describe complex focal plane and on-sky distortions. Most previous projects have employed this, or a related FITS WCS-based library, usually with some home-built custom functionality, to manage their astrometric results.
+While the FITS WCS standard does not support non-linear distortion corrections, WCSLIB_ does support some community extensions that work within the constraints of the standard. These extensions provide single-polynomial distortion models, which severely limits the ability to describe complex CCD, focal plane and on-sky distortions. Most previous projects have employed this or a related FITS WCS-based library--usually with some home-built custom functionality--to manage their astrometric results.
 
 .. _WCSLIB: http://www.atnf.csiro.au/people/mcalabre/WCS/
 .. _Greisen & Calabretta 2002: http://adsabs.harvard.edu/abs/2002A%26A...395.1061G
 .. _FITS WCS standard: http://fits.gsfc.nasa.gov/fits_wcs.html
 
-There is no standardized method in the astronomical community to improve upon or extend the `FITS WCS standard`_. The `Simple Imaging Polynomial convention <http://fits.gsfc.nasa.gov/registry/sip.html>`_ allows a distortion model represented by a polynomial of up to 9th order. The DECam community pipeline uses the `TPV convention <http://fits.gsfc.nasa.gov/registry/tpvwcs.html>`_ which allows a 7th-order polynomial distortion correction. SDSS produced their own `asTran model <https://data.sdss.org/datamodel/files/PHOTO_REDUX/RERUN/RUN/astrom/asTrans.html>`_ to map the (row,column) coordinates from each field into `(mu,nu) <https://www.sdss3.org/dr8/algorithms/surveycoords.php>`_ great circle spherical coordinates via a 3rd order polynomial.
+There is no standardized method in the astronomical community to improve upon or extend the `FITS WCS standard`_. The original paper describing the FITS distortion standard, `Calabretta et al. 2004 (in prep)`_, was not adopted by the FITS community and the paper remains unfinished and unpublished. The `Simple Imaging Polynomial convention <http://fits.gsfc.nasa.gov/registry/sip.html>`_ allows a distortion model represented by a polynomial of up to 9th order. The DECam community pipeline uses the `TPV convention <http://fits.gsfc.nasa.gov/registry/tpvwcs.html>`_ which allows a 7th-order polynomial distortion correction. SDSS produced their own `asTran model <https://data.sdss.org/datamodel/files/PHOTO_REDUX/RERUN/RUN/astrom/asTrans.html>`_ to map the (row,column) coordinates from each field into `(mu,nu) <https://www.sdss3.org/dr8/algorithms/surveycoords.php>`_ great circle spherical coordinates via a 3rd order polynomial.
 
-Two much more flexible, powerful, and extensible systems are Starlink AST_ and STScI's GWCS_. The Starlink AST_ package, developed by David Berry (East Asian Observatory) in C, with a python interface (PyAST_) written by Tim Jenness, provides models that can be combined in a variety of ways, but it is not widely used. Nadia Dencheva and Perry Greenfield (STScI) are developing a python-based Generalized World Coordinate System package (GWCS_), building top of `astropy.modeling`_ for JWST.
+Two much more flexible, powerful, and extensible systems are Starlink AST_ and STScI's GWCS_. The Starlink AST_ package, developed by David Berry (East Asian Observatory) in C, with a python interface (PyAST_) written by Tim Jenness, provides models that can be combined in a variety of ways. These more advanced models are not widely used outside the Starlink software suite, although ds9 links with AST and so files with those features are viewable in ds9. Nadia Dencheva and Perry Greenfield (STScI) are developing a python-based Generalized World Coordinate System package (GWCS_) for JWST, building on top of the generic mathematical modeling system provided by `astropy.modeling`_.
 
 .. _AST: http://starlink.eao.hawaii.edu/starlink/AST
 .. _PyAST: http://timj.github.io/starlink-pyast/pyast.html
 .. _GWCS: https://github.com/spacetelescope/gwcs
 .. _astropy.modeling: http://docs.astropy.org/en/stable/modeling/
+.. _Calabretta et al. 2004 (in prep): http://fits.gsfc.nasa.gov/wcs/dcs_20040422.pdf
 
 This document discusses the expected requirements for the LSST distortion model and coordinate transform system, the options we have to select from, and provides a recommendation for how we should achieve our requirements.
 
@@ -42,8 +43,8 @@ LSST's most critical requirements are:
 
  * Specifying complex parametric and non-parametric models.
  * Arbitrary combinations/compositions of those models.
- * Ability to provide approximate WCSLIB_-style `FITS WCS standard`_ output, for legacy software use.
- * Fast pixel-to-pixel performance for warping, and on small (~400px) postage stamps in multifit.
+ * Ability to provide approximate WCSLIB_-style `FITS WCS standard`_ output, for legacy software use. The particular choice of non-standard convention to produce (TPV, SIP, etc.) could be a user-supplied parameter.
+ * Fast pixel-to-pixel performance for image warping and small (~400px) postage stamps in multifit. These transforms are generally not vectorizable, and thus may be difficult to optimize in e.g. numpy. For small arrays, it may be enough to produce an affine transform over that small region.
  * Shared serialization format with GWCS_, to allow LSST files to be used in non-LSST code and vice-versa (at a recent joint meeting, LSST and AstroPy representatives discussed leveraging the work the IVOA has done on STC2_ as a possible route toward this). This requires that all transforms used by LSST are available within GWCS: LSST could contribute the required code to GWCS for any of our externally-visible transforms that they do not have.
 
 .. _STC2: https://volute.g-vo.org/svn/trunk/projects/dm/vo-dml/models/STC2/2016-02-19/VO-DML-STC2.html
@@ -254,17 +255,17 @@ active development, so LSST could have a hand in shaping its future path.
 Advantages
 ^^^^^^^^^^^
 
- * FITS WCS standard immediately available to us (not clear if all portions of `Greisen & Calabretta 2002`_, `Calabretta & Greisen 2002`_, `Calabretta et al. 2004`_ are currently implemented).
+ * FITS WCS standard immediately available to us (not clear if all portions of `Greisen & Calabretta 2002`_, `Calabretta & Greisen 2002`_) are currently implemented).
  * More complicated distortion models immediately available to us.
  * Pure python, allowing easy extension.
  * Clean API for adding additional models.
  * Significant and understandable documentation already exists.
  * Community adoption likely very high.
  * Would share development effort with STScI.
+ * Serialization format would be automatically shared with GWCS.
 
 .. _Greisen & Calabretta 2002: http://adsabs.harvard.edu/abs/2002A%26A...395.1061G
 .. _Calabretta & Greisen 2002: http://adsabs.harvard.edu/abs/2002A%26A...395.1077C
-.. _Calabretta et al. 2004: http://fits.gsfc.nasa.gov/wcs/dcs_20040422.pdf
 
 .. _GWCS-disadvantage:
 
@@ -276,6 +277,7 @@ Disadvantages
  * Model description framework is pure python: unclear if performance requirements can be met, particularly for warping.
  * Ongoing development work: not all features we may need are available.
  * No effort yet on performance optimizations.
+ * Less likely that serialization format would be available outside the python community.
 
 .. _c++AST:
 
@@ -290,6 +292,8 @@ could contract him out and guide the development of a new implementation of AST
 that we could use from C++, while solving some of the current limitations in AST (e.g. adding quad-double precision for time, better unit support, clearer API).
 
 As part of this process, the `astropy.modeling`_ API should be used as a reference for how to create and combine models. Their method of using mathematical operations to combine transforms makes the creation of complicated models from simpler components highly intuitive, and presents a good design to build a C++ transformation system from.
+
+To be of greatest benefit to the community, the new AST should be independent of the LSST stack. Some necessary features of the stack, e.g. lsst.afw.coords, could be pushed up into AST, to make them more widely available to the community. This could also simplify the "astropy integration question" (Jenness et al, 2016, Proc. SPIE, 9913, in press), by pushing much of the low-level astropy linkages into the new AST and out of afw.
 
 .. _c++AST-advantage:
 
@@ -323,7 +327,7 @@ Although adopting GWCS would be ideal from the perspective of community involvem
 
 So long as we insist on sharing a serialization format with GWCS and work together to ensure we can round-trip data between the projects, we would retain the option of using GWCS in the future.
 
-Given the requirements, options, and caveats listed above, our recommendation is to immediately begin implementing a rewrite of `afw.image.Wcs`_, `afw.cameraGeom`_ and `afw.geom.XYTransform`_ on top of AST, while pursuing a new C++ rewrite of AST that takes into account the lessons learned from the design and API of astropy.modeling and GWCS. We will decide how much to abstract AST as we design the new afw API, and that API can help guide the new C++-based AST rewrite.
+Given the requirements, options, and caveats listed above, our recommendation is to immediately begin implementing a rewrite of `afw.image.Wcs`_, `afw.cameraGeom`_ and `afw.geom.XYTransform`_ on top of AST (some balance of options 3. and 4.), while pursuing a new C++ rewrite of AST (option 6.) that takes into account the lessons learned from the design and API of astropy.modeling and GWCS. We will decide how much to abstract AST as we design the new afw API, and that API can help guide the new C++-based AST rewrite.
 
 .. _significant overhead: https://jira.lsstcorp.org/browse/DM-5701
 .. _afw.math.warpExposure: https://github.com/lsst/afw/blob/w.2016.15/include/lsst/afw/math/warpExposure.h
