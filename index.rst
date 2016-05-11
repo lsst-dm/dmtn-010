@@ -18,12 +18,11 @@ World Coordinate System (WCS) transformations. WCSLIB is based on the work by
 While the FITS WCS standard does not support non-linear distortion corrections, WCSLIB_ does support some community extensions that work within the constraints of the standard. These extensions provide single-polynomial distortion models, which severely limits the ability to describe complex CCD, focal plane and on-sky distortions. Most previous projects have employed this or a related FITS WCS-based library--usually with some home-built custom functionality--to manage their astrometric results.
 
 .. _WCSLIB: http://www.atnf.csiro.au/people/mcalabre/WCS/
-.. _Greisen & Calabretta 2002: http://adsabs.harvard.edu/abs/2002A%26A...395.1061G
 .. _FITS WCS standard: http://fits.gsfc.nasa.gov/fits_wcs.html
 
 There is no standardized method in the astronomical community to improve upon or extend the `FITS WCS standard`_. The original paper describing the FITS distortion standard, `Calabretta et al. 2004 (in prep)`_, was not adopted by the FITS community and the paper remains unfinished and unpublished. The `Simple Imaging Polynomial convention <http://fits.gsfc.nasa.gov/registry/sip.html>`_ allows a distortion model represented by a polynomial of up to 9th order. The DECam community pipeline uses the `TPV convention <http://fits.gsfc.nasa.gov/registry/tpvwcs.html>`_ which allows a 7th-order polynomial distortion correction. SDSS produced their own `asTran model <https://data.sdss.org/datamodel/files/PHOTO_REDUX/RERUN/RUN/astrom/asTrans.html>`_ to map the (row,column) coordinates from each field into `(mu,nu) <https://www.sdss3.org/dr8/algorithms/surveycoords.php>`_ great circle spherical coordinates via a 3rd order polynomial.
 
-Two much more flexible, powerful, and extensible systems are Starlink AST_ and STScI's GWCS_. The Starlink AST_ package, developed by David Berry (East Asian Observatory) in C, with a python interface (PyAST_) written by Tim Jenness, provides models that can be combined in a variety of ways. These more advanced models are not widely used outside the Starlink software suite, although ds9 links with AST and so files with those features are viewable in ds9. Nadia Dencheva and Perry Greenfield (STScI) are developing a python-based Generalized World Coordinate System package (GWCS_) for JWST, building on top of the generic mathematical modeling system provided by `astropy.modeling`_.
+Two much more flexible, powerful, and extensible systems are Starlink AST_ and STScI's GWCS_. The Starlink AST_ package :cite:`2016A&C....15...33B`, developed by David Berry (East Asian Observatory) in C, with a python interface (PyAST_) written by Tim Jenness, provides models that can be combined in a variety of ways. These more advanced models are not widely used outside the Starlink software suite, although ds9 links with AST and so files with those features are viewable in ds9. Nadia Dencheva and Perry Greenfield (STScI) are developing a python-based Generalized World Coordinate System package (GWCS_) for JWST, building on top of the generic mathematical modeling system provided by `astropy.modeling`_.
 
 .. _AST: http://starlink.eao.hawaii.edu/starlink/AST
 .. _PyAST: http://timj.github.io/starlink-pyast/pyast.html
@@ -255,7 +254,7 @@ active development, so LSST could have a hand in shaping its future path.
 Advantages
 ^^^^^^^^^^^
 
- * FITS WCS standard immediately available to us (not clear if all portions of `Greisen & Calabretta 2002`_, `Calabretta & Greisen 2002`_) are currently implemented).
+ * FITS WCS standard immediately available to us (not clear if all portions of `Greisen & Calabretta 2002`_ :cite:`2002A&A...395.1061G`, `Calabretta & Greisen 2002`_ :cite:`2002A&A...395.1077C`) are currently implemented).
  * More complicated distortion models immediately available to us.
  * Pure python, allowing easy extension.
  * Clean API for adding additional models.
