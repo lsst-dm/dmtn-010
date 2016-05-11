@@ -292,7 +292,7 @@ that we could use from C++, while solving some of the current limitations in AST
 
 As part of this process, the `astropy.modeling`_ API should be used as a reference for how to create and combine models. Their method of using mathematical operations to combine transforms makes the creation of complicated models from simpler components highly intuitive, and presents a good design to build a C++ transformation system from.
 
-To be of greatest benefit to the community, the new AST should be independent of the LSST stack. Some necessary features of the stack, e.g. lsst.afw.coords, could be pushed up into AST, to make them more widely available to the community. This could also simplify the "astropy integration question" (Jenness et al, 2016, Proc. SPIE, 9913, in press), by pushing much of the low-level astropy linkages into the new AST and out of afw.
+To be of greatest benefit to the community, the new AST should be independent of the LSST stack. Some necessary features of the stack, e.g. lsst.afw.coords, could be pushed up into AST, to make them more widely available to the community. This could also simplify the "astropy integration question" :cite:`2016SPIE.LSST-astropy-inprep`, by pushing much of the low-level astropy linkages into the new AST and out of afw.
 
 .. _c++AST-advantage:
 
