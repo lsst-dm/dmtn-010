@@ -14,7 +14,7 @@ Introduction
 
 LSST-DM currently uses WCSLIB_ to persist/un-persist and manipulate
 World Coordinate System (WCS) transformations. WCSLIB is based on the work by
-`Greisen & Calabretta 2002`_, which were incorporated into the `FITS WCS standard`_.
+`Greisen & Calabretta 2002`_ :cite:`2002A&A...395.1061G`, which were incorporated into the `FITS WCS standard`_.
 While the FITS WCS standard does not support non-linear distortion corrections, WCSLIB_ does support some community extensions that work within the constraints of the standard. These extensions provide single-polynomial distortion models, which severely limits the ability to describe complex CCD, focal plane and on-sky distortions. Most previous projects have employed this or a related FITS WCS-based library--usually with some home-built custom functionality--to manage their astrometric results.
 
 .. _WCSLIB: http://www.atnf.csiro.au/people/mcalabre/WCS/
@@ -332,6 +332,13 @@ Given the requirements, options, and caveats listed above, our recommendation is
 .. _significant overhead: https://jira.lsstcorp.org/browse/DM-5701
 .. _afw.math.warpExposure: https://github.com/lsst/afw/blob/w.2016.15/include/lsst/afw/math/warpExposure.h
 
+References
+==========
+
+.. bibliography:: bibliography.bib
+   :encoding: latex+latin
+   :style: plain
+
 .. _appendix pyast/gwcs:
 
 Appendix: PyAst/GWCS Performance Comparison
@@ -345,4 +352,5 @@ Python comparison code is shown below. This requires having recent versions of b
 
 .. literalinclude::
   _static/compare_gwcs_ast.py
+
 
