@@ -325,7 +325,7 @@ There are three clearly viable choices: some variation on 3. and 4. (use AST), 5
 
 .. table:: Estimated work required
 
-   +------+--------+----------------------------------------------+--------+---------------------------------------+
+   +------+-------------------------------------------------------+------------------------------------------------+
    |      | minimal                                               | optimal                                        |
    +------+--------+----------------------------------------------+--------+---------------------------------------+
    |      | effort | result                                       | effort | result                                |
@@ -384,9 +384,9 @@ The code takes a file with a basic FITS WCS, and adds a 2nd order 2D polynomial 
    +--------------+-----------+-----------+---------+---------+-------+
 
 
- * Download :download:`PyAst/GWCS comparison (python)<_static/compare_gwcs_ast.py>`.
- * Download :download:`simple FITS file<_static/simple.fits.gz>`.
- * Download :download:`simple file generator (python)<_static/makeExposure.py>`.
+* Download :download:`PyAst/GWCS comparison (python)<_static/compare_gwcs_ast.py>`.
+* Download :download:`simple FITS file<_static/simple.fits.gz>`.
+* Download :download:`simple file generator (python)<_static/makeExposure.py>`.
 
 Python comparison code is shown below. This requires having recent versions of both PyAST and GWCS installed. Both are available to install via pip.
 
