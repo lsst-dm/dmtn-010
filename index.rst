@@ -20,7 +20,7 @@ While the FITS WCS standard does not support non-linear distortion corrections, 
 .. _WCSLIB: http://www.atnf.csiro.au/people/mcalabre/WCS/
 .. _FITS WCS standard: http://fits.gsfc.nasa.gov/fits_wcs.html
 
-There is no standardized method in the astronomical community to improve upon or extend the `FITS WCS standard`_. The original paper describing the FITS distortion standard, `Calabretta et al. 2004 (in prep)`_, was not adopted by the FITS community and the paper remains unfinished and unpublished. The `Simple Imaging Polynomial convention <http://fits.gsfc.nasa.gov/registry/sip.html>`_ allows a distortion model represented by a polynomial of up to 9th order. The DECam community pipeline uses the `TPV convention <http://fits.gsfc.nasa.gov/registry/tpvwcs.html>`_ which allows a 7th-order polynomial distortion correction. SDSS produced their own `asTran model <https://data.sdss.org/datamodel/files/PHOTO_REDUX/RERUN/RUN/astrom/asTrans.html>`_ to map the (row,column) coordinates from each field into `(mu,nu) <https://www.sdss3.org/dr8/algorithms/surveycoords.php>`_ great circle spherical coordinates via a 3rd order polynomial.
+There is no standardized method in the astronomical community to improve upon or extend the `FITS WCS standard`_. The original paper describing the FITS distortion standard, `Calabretta et al. 2004 (in prep)`_, was not adopted by the FITS community and the paper remains unfinished and unpublished. The `Simple Imaging Polynomial convention <http://fits.gsfc.nasa.gov/registry/sip.html>`_ :cite:`2005ASPC..347..491S` allows a distortion model represented by a polynomial of up to 9th order. The DECam community pipeline uses the `TPV convention <http://fits.gsfc.nasa.gov/registry/tpvwcs.html>`_ which allows a 7th-order polynomial distortion correction. SDSS produced their own `asTran model <https://data.sdss.org/datamodel/files/PHOTO_REDUX/RERUN/RUN/astrom/asTrans.html>`_ to map the (row,column) coordinates from each field into `(mu,nu) <https://www.sdss3.org/dr8/algorithms/surveycoords.php>`_ great circle spherical coordinates via a 3rd order polynomial.
 
 Two much more flexible, powerful, and extensible systems are Starlink AST_ and STScI's GWCS_. The Starlink AST_ package :cite:`2016A&C....15...33B`, developed by David Berry (East Asian Observatory) in C, with a python interface (PyAST_) written by Tim Jenness, provides models that can be combined in a variety of ways. These more advanced models are not widely used outside the Starlink software suite, although ds9 links with AST and so files with those features are viewable in ds9. Nadia Dencheva and Perry Greenfield (STScI) are developing a python-based Generalized World Coordinate System package (GWCS_) for JWST, building on top of the generic mathematical modeling system provided by `astropy.modeling`_.
 
@@ -128,7 +128,7 @@ Disadvantages
 ^^^^^^^^^^^^^^
 
  * Significant time investment.
- * FITS WCS standard not immediately available to us.
+ * FITS WCS standard and extensions (e.g. SIP, TPV) not immediately available to us.
  * Yet Another WCS "Standard".
  * WCS and distortion models are complex objects: usable interface is challenging
    to develop.
@@ -180,7 +180,7 @@ Advantages
 ^^^^^^^^^^^
 
  * Minimal initial time investment.
- * FITS WCS standard immediately available to us.
+ * FITS WCS standard and extensions (e.g. SIP, TPV) immediately available to us.
  * More complicated distortion models immediately available to us.
  * API for adding additional models.
  * AST is written in C, so is callable from C++.
@@ -217,7 +217,7 @@ Advantages
 
  * Allows flexibility in switching libraries in the future.
  * Abstract away some of the more confusing portions of C API.
- * FITS WCS standard immediately available to us.
+ * FITS WCS standard and extensions (e.g. SIP, TPV) immediately available to us.
  * More complicated distortion models immediately available to us.
  * API for adding additional models.
  * AST is written in C, so is callable from C++.
@@ -254,7 +254,7 @@ active development, so LSST could have a hand in shaping its future path.
 Advantages
 ^^^^^^^^^^^
 
- * FITS WCS standard immediately available to us (not clear if all portions of `Greisen & Calabretta 2002`_ :cite:`2002A&A...395.1061G`, `Calabretta & Greisen 2002`_ :cite:`2002A&A...395.1077C`) are currently implemented).
+ * FITS WCS standard immediately available to us (not clear if all portions of `Greisen & Calabretta 2002`_ :cite:`2002A&A...395.1061G`, `Calabretta & Greisen 2002`_ :cite:`2002A&A...395.1077C`, or the SIP/TPV conventions are currently implemented).
  * More complicated distortion models immediately available to us.
  * Pure python, allowing easy extension.
  * Clean API for adding additional models.
@@ -319,29 +319,29 @@ Disadvantages
 Recommendations
 ===============
 
-There are three clearly viable choices: some variation on 3. and 4. (use AST), 5. (use GWCS), and 6. (rewriting AST in C++). The choice between these is a balance between having a workable solution in a relatively short time (3. and 4.) vs. having a modern API and functionality whose details we have more direct control over (5. and 6.). We estimate 2 developer months would be required to implement a usable abstraction layer between AST and the LSST stack, whereas the LSST requirements of a C++-based AST would likely require at least 6 months of David Berry's time, with a comparable amount of LSST developer time for design and guidance. Similarly, we expect that adapting our C++ warping code into python and implementing our required transforms in GWCS would be at least 6 months of developer time, while at least a year would be required to attempt to bring GWCS up to our required performance levels and make it callable from C++.
+There are three clearly viable choices: some variation on 3. and 4. (use AST), 5. (use GWCS), and 6. (rewriting AST in C++). The choice between these is a balance between having a workable solution in a relatively short time (3. and 4.) vs. having a modern API and functionality whose details we have more direct control over (5. and 6.). We estimate 2 developer months would be required to implement a usable abstraction layer between AST and the LSST stack, whereas implementing the LSST requirements in a new C++-based AST would likely require at least 6 months of David Berry's time, with a comparable amount of LSST developer time for design and guidance. Similarly, we expect that adapting our C++ warping code into python (and possibly making our Exposure object pure-python) and implementing our required transforms in GWCS would be at least 2 months of developer time, while probably a year would be required to attempt (see below) to bring GWCS up to our required performance levels and make it callable from C++.
 
 .. _table-work-estimate:
 
 .. table:: Estimated work required
 
-+------+---------+----------------------------------------------+--------+-----------------------------------+
-|      | minimal                                                | optimal                                    |
-+------+---------+----------------------------------------------+--------+-----------------------------------+
-|      | effort  | result                                       | effort | result                            |
-+======+=========+==============================================+========+===================================+
-| AST  | 2       | minimal AST wrapper replacing                | 12     | C++ AST meeting LSST requirement  |
-|      |         | `afw.image.wcs`_ and `afw.geom.XYTransform`_ |        |                                   |
-+------+---------+----------------------------------------------+--------+-----------------------------------+
-| GWCS | 6       | LSST warping code in python;                 | >12    | performant GWCS callable from C++ |
-|      |         | all necessary transforms implemented         |        |                                   |
-+------+---------+----------------------------------------------+--------+-----------------------------------+
+   +------+--------+----------------------------------------------+--------+---------------------------------------+
+   |      | minimal                                               | optimal                                        |
+   +------+--------+----------------------------------------------+--------+---------------------------------------+
+   |      | effort | result                                       | effort | result                                |
+   +======+========+==============================================+========+=======================================+
+   | AST  | 2      | minimal AST wrapper replacing                | 12     | C++ AST meeting LSST requirement      |
+   |      |        | `afw.image.wcs`_ and `afw.geom.XYTransform`_ |        |                                       |
+   +------+--------+----------------------------------------------+--------+---------------------------------------+
+   | GWCS | 2      | LSST warping code in python, using GWCS;     | 6-12   | performant GWCS callable from C++;    |
+   |      |        | all necessary transforms implemented         |        | approximation output as e.g. FITS-SIP |
+   +------+--------+----------------------------------------------+--------+---------------------------------------+
 
-The LSST warping code is one of our most WCS-related performance-intensive calculations. We achieved a substantial performance improvement by computing the WCS on a grid and linearly interpolating across the grid. This suggests that the actual WCS calculation is a more time-intensive part of the warping calculation than the convolution step, implying that any WCS implementation we choose must be equally performant. This comparison becomes worse when corrections for tree rings and other high-order distortions come into play: they vary on the few-pixel level, and thus linear interpolation across dozens of pixels will not properly account for them.
+The LSST warping code is one of our most WCS-related performance intensive calculations. We achieved a substantial performance improvement by computing the WCS on a grid and linearly interpolating across the grid. This suggests that the actual WCS calculation is a more time-intensive part of the warping calculation than the convolution step, implying that any WCS implementation we choose must be equally performant. This comparison becomes worse when corrections for tree rings and other high-order distortions come into play: they vary on the few-pixel level, and thus linear interpolation across dozens of pixels will likely not properly account for them.
 
 Although adopting GWCS would be ideal from the perspective of getting involvement from the broader astronomical python community, there are two main reasons we are not recommending that option at this time:
 
- 1. It is unclear whether GWCS would be able to achieve our required performance targets when computing transformations on small pixel regions. Our testing found a very `significant overhead`_ (10-20 times slower) when using GWCS over small (~100-1000) pixel regions (see `appendix pyast/gwcs`_). Some of this overhead could be removed if LSST put effort into optimizing GWCS, but it is unclear whether optimizations to a python library would be sufficient for our needs. It is even less clear whether we could use a python-based WCS and transform library from within C++ without sustaining a significant performance penalty.
+ 1. It is unclear whether GWCS would be able to achieve our required performance targets when computing transformations on small pixel regions. Our testing (:ref:`table-gwcs-ast-performance`) found a very `significant overhead`_ (10-20 times slower) when using GWCS over small (~100-1000) pixel regions (see `appendix pyast/gwcs`_). Some of this overhead could be removed if LSST put effort into optimizing GWCS, but it is unclear whether optimizations to a python library would be sufficient for our needs. It is even less clear whether we could use a python-based WCS and transform library from within C++ without sustaining a significant performance penalty.
  2. Our current warping code--`afw.math.warpExposure`_--is written purely in C++ and would incur a significant effort to rewrite in python. Warping involves calculations on small patches in a manner that is not easily vectorized. Because of the concerns about performance on small patches described above, it is unclear if the new product would be performant enough to justify the effort.
 
 So long as we insist on sharing a serialization format with GWCS and work together to ensure we can round-trip data between the projects, we would retain the option of using GWCS in the future.
@@ -363,25 +363,25 @@ References
 Appendix: PyAst/GWCS Performance Comparison
 ===========================================
 
-Our basic performance comparison results between PyAST and GWCS, and the code to reproduce them, are show below.
+Our basic performance comparison results between PyAST and GWCS, and the code to reproduce them, are given below.
 
-The code takes a file with a basic FITS WCS, and adds a 2nd order 2D polynomial to convert actual pixels to mean pixels, with a pure TAN WCS for mean pixels to sky. We considered this a minimal complexity test of the performance of the two systems, while also demonstrating their interfaces. The results shown below were run on a mid-2012 Macbook Pro (2.6GHz i7).
+The code takes a file with a basic FITS WCS, and adds a 2nd order 2D polynomial to convert actual pixels to mean pixels, with a pure TAN WCS for mean pixels to sky. We consider this a minimal complexity test of the performance of the two systems, while also demonstrating their interfaces. The results shown below were run on a mid-2012 Macbook Pro (2.6GHz i7).
 
 .. _table-gwcs-ast-performance:
 
-.. table:: GWCS/PyAST Performance comparision
+.. table:: GWCS/PyAST Performance comparison
 
-+--------------+-----------+-----------+---------+---------+-------+
-| # points     | GWCS      | PyAST     | GWCS    | PyAST   | ratio |
-+==============+===========+===========+=========+=========+=======+
-|              | time (µs) | time (µs) | time/pt | time/pt |       |
-+--------------+-----------+-----------+---------+---------+-------+
-| 10\ :sup:`2` | 15200     | 62.3      | 152     | 0.623   | 24    |
-+--------------+-----------+-----------+---------+---------+-------+
-| 10\ :sup:`4` | 18900     | 2610      | 1.89    | 0.261   | 7.2   |
-+--------------+-----------+-----------+---------+---------+-------+
-| 10\ :sup:`6` | 346000    | 269000    | 0.346   | 0.269   | 1.3   |
-+--------------+-----------+-----------+---------+---------+-------+
+   +--------------+-----------+-----------+---------+---------+-------+
+   | # points     | GWCS      | PyAST     | GWCS    | PyAST   | ratio |
+   +--------------+-----------+-----------+---------+---------+-------+
+   |              | time (µs) | time (µs) | time/pt | time/pt |       |
+   +==============+===========+===========+=========+=========+=======+
+   | 10\ :sup:`2` | 15200     | 62.3      | 152     | 0.623   | 24    |
+   +--------------+-----------+-----------+---------+---------+-------+
+   | 10\ :sup:`4` | 18900     | 2610      | 1.89    | 0.261   | 7.2   |
+   +--------------+-----------+-----------+---------+---------+-------+
+   | 10\ :sup:`6` | 346000    | 269000    | 0.346   | 0.269   | 1.3   |
+   +--------------+-----------+-----------+---------+---------+-------+
 
 
  * Download :download:`PyAst/GWCS comparison (python)<_static/compare_gwcs_ast.py>`.
