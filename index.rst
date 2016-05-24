@@ -319,7 +319,27 @@ Disadvantages
 Recommendations
 ===============
 
-Although adopting GWCS would be ideal from the perspective of community involvement, there are two main reasons we are not pursuing that option at this time:
+There are three clearly viable choices: some variation on 3. and 4. (use AST), 5. (use GWCS), and 6. (rewriting AST in C++). The choice between these is a balance between having a workable solution in a relatively short time (3. and 4.) vs. having a modern API and functionality whose details we have more direct control over (5. and 6.). We estimate 2 developer months would be required to implement a usable abstraction layer between AST and the LSST stack, whereas the LSST requirements of a C++-based AST would likely require at least 6 months of David Berry's time, with a comparable amount of LSST developer time for design and guidance. Similarly, we expect that adapting our C++ warping code into python and implementing our required transforms in GWCS would be at least 6 months of developer time, while at least a year would be required to attempt to bring GWCS up to our required performance levels and make it callable from C++.
+
+.. _table-work-estimate:
+
+.. table:: Estimated work required
+
++------+---------+----------------------------------------------+--------+-----------------------------------+
+|      | minimal                                                | optimal                                    |
++------+---------+----------------------------------------------+--------+-----------------------------------+
+|      | effort  | result                                       | effort | result                            |
++======+=========+==============================================+========+===================================+
+| AST  | 2       | minimal AST wrapper replacing                | 12     | C++ AST meeting LSST requirement  |
+|      |         | `afw.image.wcs`_ and `afw.geom.XYTransform`_ |        |                                   |
++------+---------+----------------------------------------------+--------+-----------------------------------+
+| GWCS | 6       | LSST warping code in python;                 | >12    | performant GWCS callable from C++ |
+|      |         | all necessary transforms implemented         |        |                                   |
++------+---------+----------------------------------------------+--------+-----------------------------------+
+
+The LSST warping code is one of our most WCS-related performance-intensive calculations. We achieved a substantial performance improvement by computing the WCS on a grid and linearly interpolating across the grid. This suggests that the actual WCS calculation is a more time-intensive part of the warping calculation than the convolution step, implying that any WCS implementation we choose must be equally performant. This comparison becomes worse when corrections for tree rings and other high-order distortions come into play: they vary on the few-pixel level, and thus linear interpolation across dozens of pixels will not properly account for them.
+
+Although adopting GWCS would be ideal from the perspective of getting involvement from the broader astronomical python community, there are two main reasons we are not recommending that option at this time:
 
  1. It is unclear whether GWCS would be able to achieve our required performance targets when computing transformations on small pixel regions. Our testing found a very `significant overhead`_ (10-20 times slower) when using GWCS over small (~100-1000) pixel regions (see `appendix pyast/gwcs`_). Some of this overhead could be removed if LSST put effort into optimizing GWCS, but it is unclear whether optimizations to a python library would be sufficient for our needs. It is even less clear whether we could use a python-based WCS and transform library from within C++ without sustaining a significant performance penalty.
  2. Our current warping code--`afw.math.warpExposure`_--is written purely in C++ and would incur a significant effort to rewrite in python. Warping involves calculations on small patches in a manner that is not easily vectorized. Because of the concerns about performance on small patches described above, it is unclear if the new product would be performant enough to justify the effort.
@@ -343,11 +363,32 @@ References
 Appendix: PyAst/GWCS Performance Comparison
 ===========================================
 
+Our basic performance comparison results between PyAST and GWCS, and the code to reproduce them, are show below.
+
+The code takes a file with a basic FITS WCS, and adds a 2nd order 2D polynomial to convert actual pixels to mean pixels, with a pure TAN WCS for mean pixels to sky. We considered this a minimal complexity test of the performance of the two systems, while also demonstrating their interfaces. The results shown below were run on a mid-2012 Macbook Pro (2.6GHz i7).
+
+.. _table-gwcs-ast-performance:
+
+.. table:: GWCS/PyAST Performance comparision
+
++--------------+-----------+-----------+---------+---------+-------+
+| # points     | GWCS      | PyAST     | GWCS    | PyAST   | ratio |
++==============+===========+===========+=========+=========+=======+
+|              | time (µs) | time (µs) | time/pt | time/pt |       |
++--------------+-----------+-----------+---------+---------+-------+
+| 10\ :sup:`2` | 15200     | 62.3      | 152     | 0.623   | 24    |
++--------------+-----------+-----------+---------+---------+-------+
+| 10\ :sup:`4` | 18900     | 2610      | 1.89    | 0.261   | 7.2   |
++--------------+-----------+-----------+---------+---------+-------+
+| 10\ :sup:`6` | 346000    | 269000    | 0.346   | 0.269   | 1.3   |
++--------------+-----------+-----------+---------+---------+-------+
+
+
  * Download :download:`PyAst/GWCS comparison (python)<_static/compare_gwcs_ast.py>`.
  * Download :download:`simple FITS file<_static/simple.fits.gz>`.
  * Download :download:`simple file generator (python)<_static/makeExposure.py>`.
 
-Python comparison code is shown below. This requires having recent versions of both PyAst and GWCS installed. Both are available to install via pip.
+Python comparison code is shown below. This requires having recent versions of both PyAST and GWCS installed. Both are available to install via pip.
 
 .. literalinclude::
   _static/compare_gwcs_ast.py
