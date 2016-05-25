@@ -283,18 +283,26 @@ There are three clearly viable choices: some variation on :ref:`adopt-AST`; :ref
 
 .. table:: Estimated work required
 
-   +------+---------------------------------------------------------+--------------------------------------------------------+
-   |      | minimal                                                 | optimal                                                |
-   +------+----------+----------------------------------------------+----------+---------------------------------------------+
-   |      | effort   | result                                       | effort   | result                                      |
-   |      | (months) |                                              | (months) |                                             |
-   +======+==========+==============================================+==========+=============================================+
-   | AST  | 2        | minimal AST wrapper replacing                | 12       | C++ AST meeting LSST requirement            |
-   |      |          | `afw.image.wcs`_ and `afw.geom.XYTransform`_ |          | (i.e. no spectra/time mappings)             |
-   +------+----------+----------------------------------------------+----------+---------------------------------------------+
-   | GWCS | 2        | LSST warping code in python using GWCS;      | 6-12     | performant GWCS; LSST transforms in python; |
-   |      |          | transforms implemented; not performant       |          | approximation output as e.g. FITS SIP       |
-   +------+----------+----------------------------------------------+----------+---------------------------------------------+
+   +------+------------------------------------------------------------------+----------------------------------------------------------------------+
+   |      | minimal                                                          | optimal                                                              |
+   |      +----------------+-------------------------------------------------+----------------+-----------------------------------------------------+
+   |      | .. raw:: html  | result                                          | .. raw:: html  | result                                              |
+   |      |                |                                                 |                |                                                     |
+   |      |    effort <br> |                                                 |    effort <br> |                                                     |
+   |      |    (months)    |                                                 |    (months)    |                                                     |
+   +======+================+=================================================+================+=====================================================+
+   | AST  | 2              | .. raw:: html                                   | 12             | .. raw:: html                                       |
+   |      |                |                                                 |                |                                                     |
+   |      |                |    minimal AST wrapper replacing <br>           |                |    C++ AST meeting LSST requirement <br>            |
+   |      |                |    afw.image.wcs and afw.geom.XYTransform       |                |    (i.e. no spectra/time mappings)                  |
+   |      |                |                                                 |                |                                                     |
+   +------+----------------+-------------------------------------------------+----------------+-----------------------------------------------------+
+   | GWCS | 2              | .. raw:: html                                   | 6-12           | .. raw:: html                                       |
+   |      |                |                                                 |                |                                                     |
+   |      |                |    LSST warping code in python using GWCS; <br> |                |    performant GWCS; LSST transforms in python; <br> |
+   |      |                |    transforms implemented; not performant       |                |    approximation output as e.g. FITS SIP            |
+   |      |                |                                                 |                |                                                     |
+   +------+----------------+-------------------------------------------------+----------------+-----------------------------------------------------+
 
 Although adopting GWCS would be ideal from the perspective of getting involvement from the broader astronomical python community, there are two main reasons we are not recommending that option at this time:
 
