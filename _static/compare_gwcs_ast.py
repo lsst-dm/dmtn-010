@@ -1,9 +1,11 @@
+#!/usr/bin/env ipython
 """Comparison between GWCS and AST.
 
 You must run this with ipython and you must create simple.fits first. Thus:
 $ python makeExposure.py
 $ ipython compare_gwcs_ast.py
 """
+from __future__ import absolute_import, division, print_function
 import os.path
 
 import numpy as np
@@ -196,7 +198,7 @@ def build_ast(hdu):
 
 if __name__ == "__main__":
     currdir = os.path.dirname(__file__)
-    infile = os.path.join(currdir, "simple.fits")
+    infile = os.path.join(currdir, "simple.fits.gz")
     hdu = pyfits.open(infile)[1] # reading in a MaskedImage; image is in HDU 1
     imarr = hdu.data
 
@@ -204,7 +206,7 @@ if __name__ == "__main__":
 
     ast_wcs = build_ast(hdu)
 
-    print "*** Verifying that GWCS and AST give the same results"
+    print("*** Verifying that GWCS and AST give the same results")
 
     nx = imarr.shape[0]
     ny = imarr.shape[1]
@@ -222,18 +224,18 @@ if __name__ == "__main__":
     assert np.allclose(result_ast[1], result_trangrid[1])
 
     # What does the tolerence parameter actually mean? Once we know this may be a useful test:
-    # print "How divergent is trangrid if we specify a tolerance?"
+    # print("How divergent is trangrid if we specify a tolerance?")
     # result_trangrid = (180/np.pi) * ast_wcs.trangrid([0, 0], [511, 511], 1000)
     # result_trangrid = (result_trangrid[0].reshape(ny, nx), result_trangrid[1].reshape(ny, nx))
-    # print np.allclose(result_ast[1], result_trangrid[1])
+    # print(np.allclose(result_ast[1], result_trangrid[1]))
 
-    print "*** Passed!"
+    print("*** Passed!")
 
 
     # Timing comparisons
 
     magic = get_ipython().magic  # flake8: noqa: ipython-specific code
-    
+
     nx = imarr.shape[0]
     ny = imarr.shape[1]
     for numxpts in (10, 100, 1000):
