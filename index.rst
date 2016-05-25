@@ -103,7 +103,7 @@ As a related point, it could be useful to have the same model description system
 Options
 =======
 
-There are essentially 6 options available to us, with varying trade-offs between work required, flexibility, likely performance, ease of calling from C++, and standardization in the broader community. These options are not necessarily mutually exclusive; in particular we could begin with :ref:`AST-as-is` or :ref:`AST-abstract` while developing a new system per :ref:`adoptGWCS` or :ref:`c++AST`. In addition, :ref:`AST-as-is` and :ref:`AST-abstract` are really two points in a continuum and we could evolve over time from one to the other as our needs and API design evolve.
+There are essentially 5 options available to us, with varying trade-offs between work required, flexibility, likely performance, ease of calling from C++, and standardization in the broader community. These options are not necessarily mutually exclusive; in particular we could begin with :ref:`adopt-AST` while developing a new system per :ref:`adopt-GWCS` or :ref:`c++AST`. Note that :ref:`adopt-AST` represents a continuum in which our interface to AST could change as our needs and API design evolves.
 
 .. _develop-own:
 
@@ -161,25 +161,19 @@ Disadvantages
    to develop.
  * Lessons learned by previous groups would be hard to capture.
 
-.. _AST-as-is:
+.. _adopt-AST:
 
-3. Adopt Starlink AST as-is
----------------------------
+3. Adopt Starlink AST
+---------------------
 
-The Starlink AST_ package, written in "Object Oriented C", provides a large suite of composable
-transformation classes, including mapping simplification to reduce the number of
-steps required to e.g. go from one focal plane to another, possibly avoiding
-having to transform all the way to the sky. It provides an option to compute a
-transformation (sequence of mappings) using local linear approximations for fast
-calculation. We could use AST directly in place of afw.image.Wcs, exposing all of its
-methods to the end user without a C++ interface.
+The Starlink AST_ package, written in "Object Oriented C", provides a large suite of composable transformation classes. It also has useful features such as simplification of mapping sequences and built-in local linear interpolation to speed up transformations. Simplification offers the potential to speed up warping by eliminating unnecessary transformations (e.g. to sky and back per pixel). If we adopt AST we must also decide to what extent we use it “as is”, versus building our own C++ and python interfaces on top of it. We could use AST directly in place of `afw.image.Wcs`_, exposing all of its methods to the end user with no, or a minimal, C++ interface. Or we could wrap it a C++ abstraction layer, making the interface more similar to the current `afw.image.Wcs`_ or to a new API that we design.
 
-.. _AST-as-is-advantage:
+.. _adopt-AST-advantage:
 
 Advantages
 ^^^^^^^^^^^
 
- * Minimal initial time investment.
+ * Relatively small initial time investment.
  * FITS WCS standard and extensions (e.g. SIP, TPV) immediately available to us.
  * More complicated distortion models immediately available to us.
  * API for adding additional models.
@@ -187,8 +181,10 @@ Advantages
  * Python interface to AST already developed: PyAST_.
  * Significant work already invested in performance, including a local linear approximation to a specified accuracy.
  * Significant documentation already exists.
+ * AST is mature and well tested.
+ * C++ interface could abstract away some of the more confusing portions of C API.
 
-.. _AST-as-is-disadvantage:
+.. _adopt-AST-disadvantage:
 
 Disadvantages
 ^^^^^^^^^^^^^^
@@ -198,50 +194,12 @@ Disadvantages
  * Written in "Object Oriented C" - major long-term maintainability question.
  * API could use significant refactoring.
  * David Berry will very likely retire around the time of LSST commissioning: LSST-DM would become the de-facto owners of AST.
-
-.. _AST-abstract:
-
-4. Adopt Starlink AST with LSST C++ abstraction layer
------------------------------------------------------
-
-Instead of directly using AST_, we could wrap it a C++ abstraction layer, making
-the interface more similar to the current afw.image.Wcs. This would require more
-initial work than just using AST, and would require additional effort to write
-an interface for any part of AST that we did not wrap that we discovered we
-needed later.
-
-.. _AST-abstract-advantage:
-
-Advantages
-^^^^^^^^^^^
-
- * Allows flexibility in switching libraries in the future.
- * Abstract away some of the more confusing portions of C API.
- * FITS WCS standard and extensions (e.g. SIP, TPV) immediately available to us.
- * More complicated distortion models immediately available to us.
- * API for adding additional models.
- * AST is written in C, so is callable from C++.
- * Python interface to AST already developed: PyAST_.
- * Significant work already invested in performance.
- * Signfiicant documentation already exists.
-
-.. _AST-abstract-disadvantage:
-
-Disadvantages
-^^^^^^^^^^^^^^
-
- * Moderate time investment.
- * Cannot easily leverage full power of AST machinery.
+ * Abstraction layer might not be able to easily leverage full power of AST machinery.
  * Would have to provide separate documentation of our C++ API.
- * Existing documentation often opaque.
- * PyAST_ documentation very sparse.
- * Written in "Object Oriented C" - major long-term maintainability question.
- * API could use significant refactoring.
- * David Berry will very likely retire around the time of LSST commissioning: LSST-DM would become the de-facto owners of AST.
 
-.. _adoptGWCS:
+.. _adopt-GWCS:
 
-5. Adopt AstroPy GWCS
+4. Adopt AstroPy GWCS
 ---------------------
 
 GWCS_ is a Generalized World Coordinate System library currently being developed by STScI for use by JWST. It is written in pure python, and built on top of the `astropy.modeling`_  framework.
@@ -280,7 +238,7 @@ Disadvantages
 
 .. _c++AST:
 
-6. Work with David Berry to develop modern C++ version of AST
+5. Work with David Berry to develop modern C++ version of AST
 -------------------------------------------------------------
 
 Section 6 of the `AST paper <http://arxiv.org/abs/1602.06681>`_ discusses
@@ -319,7 +277,7 @@ Disadvantages
 Recommendations
 ===============
 
-There are three clearly viable choices: some variation on 3. and 4. (use AST), 5. (use GWCS), and 6. (rewriting AST in C++). The choice between these is a balance between having a workable solution in a relatively short time (3. and 4.) vs. having a modern API and functionality whose details we have more direct control over (5. and 6.). We estimate 2 developer months would be required to implement a usable abstraction layer between AST and the LSST stack, whereas implementing the LSST requirements (not all current features of AST, e.g. spectra/time mappings) in a new C++-based AST would likely require at least 6 months of David Berry's time, with a comparable amount of LSST developer time for design and guidance. Similarly, we expect that adapting our C++ warping code into python (and possibly making our Exposure object pure-python) and implementing our required transforms in GWCS would be at least 2 months of developer time, while probably a year would be required to attempt (see below) to bring GWCS up to our required performance levels and make all LSST WCS and transforms operate in pure python.
+There are three clearly viable choices: some variation on :ref:`adopt-AST`; :ref:`adopt-GWCS`; or :ref:`c++AST`. The choice between these is a balance between having a workable solution in a relatively short time (3.) vs. having a modern API and functionality whose details we have more direct control over (4. and 5.). We estimate 2 developer months would be required to implement a usable abstraction layer between AST and the LSST stack, whereas implementing the LSST requirements (not all current features of AST, e.g. no spectra/time mappings) in a new C++-based AST would likely require at least 6 months of David Berry's time, with a comparable amount of LSST developer time for design and guidance. Similarly, we expect that adapting our C++ warping code into python (and possibly making our Exposure object pure-python) and implementing our required transforms in GWCS would be at least 2 months of developer time, while probably a year would be required to attempt (see below) to bring GWCS up to our required performance levels and make all LSST WCS and transforms operate in pure python.
 
 .. _table-work-estimate:
 
@@ -340,14 +298,14 @@ There are three clearly viable choices: some variation on 3. and 4. (use AST), 5
 
 Although adopting GWCS would be ideal from the perspective of getting involvement from the broader astronomical python community, there are two main reasons we are not recommending that option at this time:
 
- 1. It is unclear whether GWCS would be able to achieve our required performance targets when computing transformations on small pixel regions. Our testing (:ref:`table-gwcs-ast-performance`) found a very `significant overhead`_ (10-20 times slower) when using GWCS over small (~100-1000) pixel regions (see `appendix pyast/gwcs`_). Some of this overhead could be removed if LSST put effort into optimizing GWCS, but it is unclear whether optimizations to a python library would be sufficient for our needs. It is even less clear whether we could use a python-based WCS and transform library from within C++ without sustaining a significant performance penalty.
+ 1. It is unclear whether GWCS would be able to achieve our required performance targets when computing transformations on small pixel regions. Our testing (:ref:`table-gwcs-ast-performance`) found a very `significant overhead`_ (10-200 times slower) when using GWCS over small (~100-1000) pixel regions (see `appendix pyast/gwcs`_). Some of this overhead could be removed if LSST put effort into optimizing GWCS, but it is unclear whether optimizations to a python library would be sufficient for our needs. It is even less clear whether we could use a python-based WCS and transform library from within C++ without sustaining a significant performance penalty.
  2. Our current warping code--`afw.math.warpExposure`_--is written purely in C++ and would incur a significant effort to rewrite in python. Warping involves calculations on small patches in a manner that is not easily vectorized. Because of the concerns about performance on small patches described above, it is unclear if the new product would be performant enough to justify the effort.
 
 The LSST warping code is one of our most WCS-related performance intensive calculations. We achieved approximately a 2x performance improvement by computing the WCS on a grid and linearly interpolating across the grid. This suggests that the actual WCS calculation is a more time-intensive part of the warping calculation than the convolution step, implying that any WCS implementation we choose must be equally performant. This comparison becomes worse when corrections for tree rings and other high-order distortions come into play: they vary on the few-pixel level, and thus linear interpolation across dozens of pixels will likely not properly account for them.
 
 So long as we insist on sharing a serialization format with GWCS and work together to ensure we can round-trip data between the projects, we would retain the option of using GWCS in the future.
 
-Given the requirements, options, and caveats listed above, our recommendation is to immediately begin implementing a rewrite of `afw.image.Wcs`_, `afw.cameraGeom`_ and `afw.geom.XYTransform`_ on top of AST (some balance of options 3. and 4.), while pursuing a new C++ rewrite of AST (option 6.) that takes into account the lessons learned from the design and API of astropy.modeling and GWCS. We will decide how much to abstract AST as we design the new afw API, and that API can help guide the new C++-based AST rewrite.
+Given the requirements, options, and caveats listed above, our recommendation is to immediately begin implementing a rewrite of `afw.image.Wcs`_, `afw.cameraGeom`_ and `afw.geom.XYTransform`_ on top of AST (option 3.), while pursuing a new C++ rewrite of AST (option 5.) that takes into account the lessons learned from the design and API of astropy.modeling and GWCS. We will decide how much to abstract AST as we design the new afw API, and that API can help guide the new C++-based AST rewrite.
 
 .. _significant overhead: https://jira.lsstcorp.org/browse/DM-5701
 .. _afw.math.warpExposure: https://github.com/lsst/afw/blob/w.2016.15/include/lsst/afw/math/warpExposure.h
@@ -372,17 +330,17 @@ The code takes a file with a basic FITS WCS, and adds a 2nd order 2D polynomial 
 
 .. table:: GWCS/PyAST Performance comparison
 
-   +--------------+-----------+-----------+---------+---------+-------+
-   | # points     | GWCS      | PyAST     | GWCS    | PyAST   | ratio |
-   +--------------+-----------+-----------+---------+---------+-------+
-   |              | time (µs) | time (µs) | time/pt | time/pt |       |
-   +==============+===========+===========+=========+=========+=======+
-   | 10\ :sup:`2` | 15200     | 62.3      | 152     | 0.623   | 24    |
-   +--------------+-----------+-----------+---------+---------+-------+
-   | 10\ :sup:`4` | 18900     | 2610      | 1.89    | 0.261   | 7.2   |
-   +--------------+-----------+-----------+---------+---------+-------+
-   | 10\ :sup:`6` | 346000    | 269000    | 0.346   | 0.269   | 1.3   |
-   +--------------+-----------+-----------+---------+---------+-------+
+   +----------------+-----------+-----------+---------+---------+-------+
+   | # points       | GWCS      | PyAST     | GWCS    | PyAST   | ratio |
+   +----------------+-----------+-----------+---------+---------+-------+
+   |                | time (µs) | time (µs) | time/pt | time/pt |       |
+   +================+===========+===========+=========+=========+=======+
+   | 10\ :sup:`2`   | 15200     | 62.3      | 152     | 0.623   | 244   |
+   +----------------+-----------+-----------+---------+---------+-------+
+   | 100\ :sup:`2`  | 18900     | 2610      | 1.89    | 0.261   | 7.3   |
+   +----------------+-----------+-----------+---------+---------+-------+
+   | 1000\ :sup:`2` | 346000    | 269000    | 0.346   | 0.269   | 1.3   |
+   +----------------+-----------+-----------+---------+---------+-------+
 
 
 * Download :download:`PyAst/GWCS comparison (python)<_static/compare_gwcs_ast.py>`.
