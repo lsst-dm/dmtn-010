@@ -319,30 +319,31 @@ Disadvantages
 Recommendations
 ===============
 
-There are three clearly viable choices: some variation on 3. and 4. (use AST), 5. (use GWCS), and 6. (rewriting AST in C++). The choice between these is a balance between having a workable solution in a relatively short time (3. and 4.) vs. having a modern API and functionality whose details we have more direct control over (5. and 6.). We estimate 2 developer months would be required to implement a usable abstraction layer between AST and the LSST stack, whereas implementing the LSST requirements in a new C++-based AST would likely require at least 6 months of David Berry's time, with a comparable amount of LSST developer time for design and guidance. Similarly, we expect that adapting our C++ warping code into python (and possibly making our Exposure object pure-python) and implementing our required transforms in GWCS would be at least 2 months of developer time, while probably a year would be required to attempt (see below) to bring GWCS up to our required performance levels and make it callable from C++.
+There are three clearly viable choices: some variation on 3. and 4. (use AST), 5. (use GWCS), and 6. (rewriting AST in C++). The choice between these is a balance between having a workable solution in a relatively short time (3. and 4.) vs. having a modern API and functionality whose details we have more direct control over (5. and 6.). We estimate 2 developer months would be required to implement a usable abstraction layer between AST and the LSST stack, whereas implementing the LSST requirements (not all current features of AST, e.g. spectra/time mappings) in a new C++-based AST would likely require at least 6 months of David Berry's time, with a comparable amount of LSST developer time for design and guidance. Similarly, we expect that adapting our C++ warping code into python (and possibly making our Exposure object pure-python) and implementing our required transforms in GWCS would be at least 2 months of developer time, while probably a year would be required to attempt (see below) to bring GWCS up to our required performance levels and make all LSST WCS and transforms operate in pure python.
 
 .. _table-work-estimate:
 
 .. table:: Estimated work required
 
-   +------+-------------------------------------------------------+------------------------------------------------+
-   |      | minimal                                               | optimal                                        |
-   +------+--------+----------------------------------------------+--------+---------------------------------------+
-   |      | effort | result                                       | effort | result                                |
-   +======+========+==============================================+========+=======================================+
-   | AST  | 2      | minimal AST wrapper replacing                | 12     | C++ AST meeting LSST requirement      |
-   |      |        | `afw.image.wcs`_ and `afw.geom.XYTransform`_ |        |                                       |
-   +------+--------+----------------------------------------------+--------+---------------------------------------+
-   | GWCS | 2      | LSST warping code in python, using GWCS;     | 6-12   | performant GWCS callable from C++;    |
-   |      |        | all necessary transforms implemented         |        | approximation output as e.g. FITS-SIP |
-   +------+--------+----------------------------------------------+--------+---------------------------------------+
-
-The LSST warping code is one of our most WCS-related performance intensive calculations. We achieved a substantial performance improvement by computing the WCS on a grid and linearly interpolating across the grid. This suggests that the actual WCS calculation is a more time-intensive part of the warping calculation than the convolution step, implying that any WCS implementation we choose must be equally performant. This comparison becomes worse when corrections for tree rings and other high-order distortions come into play: they vary on the few-pixel level, and thus linear interpolation across dozens of pixels will likely not properly account for them.
+   +------+---------------------------------------------------------+--------------------------------------------------------+
+   |      | minimal                                                 | optimal                                                |
+   +------+----------+----------------------------------------------+----------+---------------------------------------------+
+   |      | effort   | result                                       | effort   | result                                      |
+   |      | (months) |                                              | (months) |                                             |
+   +======+==========+==============================================+==========+=============================================+
+   | AST  | 2        | minimal AST wrapper replacing                | 12       | C++ AST meeting LSST requirement            |
+   |      |          | `afw.image.wcs`_ and `afw.geom.XYTransform`_ |          | (i.e. no spectra/time mappings)             |
+   +------+----------+----------------------------------------------+----------+---------------------------------------------+
+   | GWCS | 2        | LSST warping code in python using GWCS;      | 6-12     | performant GWCS; LSST transforms in python; |
+   |      |          | transforms implemented; not performant       |          | approximation output as e.g. FITS SIP       |
+   +------+----------+----------------------------------------------+----------+---------------------------------------------+
 
 Although adopting GWCS would be ideal from the perspective of getting involvement from the broader astronomical python community, there are two main reasons we are not recommending that option at this time:
 
  1. It is unclear whether GWCS would be able to achieve our required performance targets when computing transformations on small pixel regions. Our testing (:ref:`table-gwcs-ast-performance`) found a very `significant overhead`_ (10-20 times slower) when using GWCS over small (~100-1000) pixel regions (see `appendix pyast/gwcs`_). Some of this overhead could be removed if LSST put effort into optimizing GWCS, but it is unclear whether optimizations to a python library would be sufficient for our needs. It is even less clear whether we could use a python-based WCS and transform library from within C++ without sustaining a significant performance penalty.
  2. Our current warping code--`afw.math.warpExposure`_--is written purely in C++ and would incur a significant effort to rewrite in python. Warping involves calculations on small patches in a manner that is not easily vectorized. Because of the concerns about performance on small patches described above, it is unclear if the new product would be performant enough to justify the effort.
+
+The LSST warping code is one of our most WCS-related performance intensive calculations. We achieved approximately a 2x performance improvement by computing the WCS on a grid and linearly interpolating across the grid. This suggests that the actual WCS calculation is a more time-intensive part of the warping calculation than the convolution step, implying that any WCS implementation we choose must be equally performant. This comparison becomes worse when corrections for tree rings and other high-order distortions come into play: they vary on the few-pixel level, and thus linear interpolation across dozens of pixels will likely not properly account for them.
 
 So long as we insist on sharing a serialization format with GWCS and work together to ensure we can round-trip data between the projects, we would retain the option of using GWCS in the future.
 
